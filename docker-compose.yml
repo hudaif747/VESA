@@ -50,12 +50,12 @@ services:
     depends_on:
       - arangodb
     volumes:
-      - ~/DB/arango-dump:/arango-dump
-      - ./import_dump.sh:/import_dump.sh
+      - "./import_dump.sh:/import_dump.sh"
+      - "./DB/arango-dump:/arango-dump"
     environment:
       - ARANGO_ROOT_PASSWORD=root
       - ARANGO_DB_NAME=cag-pangaea-rs-v2
-    command: /import_dump.sh
+    command: ["/bin/sh", "/import_dump.sh"]
     networks:
       - app-network
 

@@ -11,10 +11,10 @@ done
 
 echo 'Restoring database...'
 
-# Restore the database
+# Restore the database using the absolute path to the dump directory
 arangorestore --server.endpoint tcp://arangodb:8529 \
               --server.username root \
               --server.password "$ARANGO_ROOT_PASSWORD" \
-              --input-directory arango-dump \
+              --input-directory /arango-dump \
               --create-database true \
               --server.database "$ARANGO_DB_NAME"
