@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import bodyParser from "body-parser";
 
 import { connectArango } from "./database";
+import { bootstrapGateway } from "./gateway";
 
 // IMPORT ROUTES
 import mainRouter from "./routes/getDataById";
@@ -38,6 +39,9 @@ app.use(
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   })
 );
+
+// Initialize the Adapter-Registry Gateway
+bootstrapGateway();
 
 // Establish connection to database
 connectArango();

@@ -1,18 +1,18 @@
 import express, { Request, Response, Router } from "express";
-import { Database } from "arangojs";
-import { db } from "../database";
-import { mainQuery } from "../queries/mainQuery";
-import { initialPageLoadQuery } from "../queries/initialLoadQuery";
+import {
+  getServices,
+  toAdapterIds,
+  toLegacyDatasets,
+  type LegacyDataset,
+  type AdapterDatasetID,
+} from "../gateway";
 import {
   fetchPersistedDatasetIds,
   filterCommonDatasetIds,
 } from "../helper/getPersistedDatasetId";
-import { IDatasetID, IDataset } from "../types/types";
-import { ArrayCursor } from "arangojs/cursor";
+import { IDatasetID } from "../types/types";
 
 const router: Router = express.Router(); // Initialize the router
-
-const database: Database = db; // Initialize the database
 
 let keys: IDatasetID[][] = []; // Initialize keys as an empty array
 
@@ -30,11 +30,11 @@ router.post("/persist", async (req: Request, res: Response) => {
     console.log("Persisted Dataset IDs:", persistedDatasetId);
     console.log("Common Dataset IDs:", commonDatasetIds);
 
-    // Query the database immediately after adding keys
-    const cursor = await database.query(mainQuery, {
-      keys: commonDatasetIds.flat(),
-    });
-    const result: IDataset[] = await cursor.all(); // Get the dataset object from the database
+    // Use gateway service to get datasets
+    const { datasetService } = getServices();
+    const adapterIds = toAdapterIds(commonDatasetIds.flat()) as AdapterDatasetID[];
+    const datasets = await datasetService.getByIds(adapterIds);
+    const result: LegacyDataset[] = toLegacyDatasets(datasets);
 
     res.status(200).json({ result });
     keys = []; // Reset the keys array
@@ -48,11 +48,11 @@ router.post("/", async (req: Request, res: Response) => {
     keys.push(req.body.key);
     console.log("Keys for POST request:", keys);
 
-    // Query the database immediately after adding keys
-    const cursor: ArrayCursor<IDataset> = await database.query(mainQuery, {
-      keys,
-    });
-    const result: IDataset[] = await cursor.all(); // Get the dataset object from the database
+    // Use gateway service to get datasets
+    const { datasetService } = getServices();
+    const adapterIds = toAdapterIds(keys.flat()) as AdapterDatasetID[];
+    const datasets = await datasetService.getByIds(adapterIds);
+    const result: LegacyDataset[] = toLegacyDatasets(datasets);
 
     res.status(200).json({ result });
     keys = []; // Reset the keys array
@@ -63,14 +63,12 @@ router.post("/", async (req: Request, res: Response) => {
 
 router.get("/all", async (req: Request, res: Response) => {
   try {
-    const cursor1 = await database.query(initialPageLoadQuery); // Get all the Dataset_id from the database
-    keys = await cursor1.all();
-    const cursor: ArrayCursor<IDataset> = await database.query(mainQuery, {
-      keys,
-    });
-    const result: IDataset[] = await cursor.all();
+    // Use gateway service to get all datasets
+    const { datasetService } = getServices();
+    const datasets = await datasetService.getAll();
+    const result: LegacyDataset[] = toLegacyDatasets(datasets);
+
     res.status(200).json({ result });
-    keys = [];
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

@@ -1,29 +1,28 @@
-import { keywordQuery } from "../queries/keywordQuery";
 import express, { Request, Response, Router } from "express";
-import { Database } from "arangojs";
-import { db } from "../database";
-import { initialPageLoadQuery } from "../queries/initialLoadQuery";
-import processResult from "../services/Wordcloud/lenghtFiltering";
-import { IDatasetID, IKeyword } from "../types/types";
-import { ArrayCursor } from "arangojs/cursor";
+import {
+  getServices,
+  toAdapterIds,
+  toLegacyKeywords,
+  type LegacyKeyword,
+  type AdapterDatasetID,
+} from "../gateway";
+import { IDatasetID } from "../types/types";
 
 const router: Router = express.Router(); // Initialize the router
-
-const database: Database = db; // Initialize the database
 
 let keys: IDatasetID[] = []; // Initialize keys as an empty array
 
 router.post("/", async (req: Request, res: Response) => {
   try {
     keys.push(req.body.key); // Push the dataset_id to the keys array
-    const cursor: ArrayCursor<IKeyword[]> = await database.query(keywordQuery, {
-      keys,
-    });
-    const result: IKeyword[][] = await cursor.all(); // Get the Keywords of the dataset from the dataset_id[keys]
 
-    const keywords: IKeyword[] = processResult(result); // Process the result to get the keywords
+    // Use gateway service to get keywords
+    const { keywordService } = getServices();
+    const adapterIds = toAdapterIds(keys) as AdapterDatasetID[];
+    const keywords = await keywordService.getKeywordsForDatasets(adapterIds);
+    const result: LegacyKeyword[] = toLegacyKeywords(keywords);
 
-    res.status(200).json({ result: keywords });
+    res.status(200).json({ result });
     keys = []; // Reset the keys array
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -32,15 +31,12 @@ router.post("/", async (req: Request, res: Response) => {
 
 router.get("/all", async (req: Request, res: Response) => {
   try {
-    const cursor1 = await database.query(initialPageLoadQuery);
-    const keys = await cursor1.all(); // Get all the dataset_id from the database
-    const cursor = await database.query(keywordQuery, { keys });
+    // Use gateway service to get all keywords
+    const { keywordService } = getServices();
+    const keywords = await keywordService.getAllKeywords();
+    const result: LegacyKeyword[] = toLegacyKeywords(keywords);
 
-    const result = await cursor.all();
-
-    const keywords: IKeyword[] = processResult(result);
-
-    res.status(200).json({ result: keywords });
+    res.status(200).json({ result });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
