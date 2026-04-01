@@ -17,6 +17,7 @@ import persistantRouter from "./routes/persist";
 import healthCheckRouter from "./routes/healthCheck";
 
 import locationNameRouter from "./routes/getLocationName";
+import initemptydbRouter from "./routes/initemptydb";
 
 const expressPort = process.env.NODE_PORT;
 const app = express();
@@ -77,6 +78,9 @@ app.use("/persist", persistantRouter);
 
 // Services health poll
 app.use("/health", healthCheckRouter);
+
+// new dedicated router mounting
+app.use("/initemptydb", initemptydbRouter);
 
 app.listen(expressPort, () => {
   console.log(`Server started on port ${expressPort}`);
