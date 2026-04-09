@@ -1,36 +1,27 @@
 import { Router, Request, Response } from "express";
-import { Database } from "arangojs";
 import { CollectionType } from "arangojs/collection";
+import { db } from "../database";
 
 const router = Router();
 
 router.post("/", async (req: Request, res: Response) => {
   const dbName = "vesa2db";
-  const arangoUrl = process.env.ARANGO_URL || "http://127.0.0.1:8529";
-  const username = process.env.ARANGO_USER || "root";
-  const password = process.env.ARANGO_PASS || "";
   const docCollections = ["Dataset", "Author", "Keywords"];
   const edgeCollections = ["HasAuthor", "HasKeyword"];
 
   try {
-    const systemDb = new Database({
-      url: arangoUrl,
-      auth: { username, password },
-      databaseName: "_system",
-    });
+    const systemDb = db.database("_system");
     const databases = await systemDb.listDatabases();
-    let databaseCreated = false;
-    if (!databases.includes(dbName)) {
-      await systemDb.createDatabase(dbName);
-      databaseCreated = true;
+    let databaseRecreated = false;
+    
+    if (databases.includes(dbName)) {
+      await systemDb.dropDatabase(dbName);
+      databaseRecreated = true;
     }
+    
+    await systemDb.createDatabase(dbName);
 
-    const targetDb = new Database({
-      url: arangoUrl,
-      auth: { username, password },
-      databaseName: dbName,
-    });
-
+    const targetDb = db.database(dbName);
     const created = { documents: [] as string[], edges: [] as string[] };
 
     for (const name of docCollections) {
@@ -52,11 +43,11 @@ router.post("/", async (req: Request, res: Response) => {
     res.status(200).json({
       status: "success",
       database: dbName,
-      databaseCreated,
+      databaseRecreated,
       created,
-      message: databaseCreated
-        ? "Database created and collections initialized"
-        : "Database already existed; collections ensured",
+      message: databaseRecreated
+        ? "Database deleted and recreated from scratch"
+        : "Database created and collections initialized",
     });
   } catch (error) {
     console.error("initemptydb failed:", error);

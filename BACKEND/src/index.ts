@@ -18,6 +18,7 @@ import healthCheckRouter from "./routes/healthCheck";
 
 import locationNameRouter from "./routes/getLocationName";
 import initemptydbRouter from "./routes/initemptydb";
+import pangaeaHarvesterRouter from "./routes/pangaeaHarvester";
 
 const expressPort = process.env.NODE_PORT;
 const app = express();
@@ -79,8 +80,11 @@ app.use("/persist", persistantRouter);
 // Services health poll
 app.use("/health", healthCheckRouter);
 
-// new dedicated router mounting
+// new dedicated db router mounting
 app.use("/initemptydb", initemptydbRouter);
+
+// oai pm harvester for testing pangaea
+app.use("/pangaea-harvester", pangaeaHarvesterRouter);
 
 app.listen(expressPort, () => {
   console.log(`Server started on port ${expressPort}`);

@@ -61,6 +61,10 @@ export function toLegacyId(id: AdapterDatasetID): LegacyDatasetID {
  * toAdapterId('STACCollection/456') // => 'stac:456'
  */
 export function toAdapterId(legacyId: string): AdapterDatasetID {
+  if (typeof legacyId !== 'string') {
+    throw new Error(`Invalid legacyId: expected string, got ${typeof legacyId} (${legacyId})`);
+  }
+
   const [collection, ...idParts] = legacyId.split('/');
   const datasetId = idParts.join('/'); // Handle IDs that might contain slashes
 
