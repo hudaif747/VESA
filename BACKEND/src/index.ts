@@ -1,7 +1,6 @@
-import express, { Request, Response, Router } from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import bodyParser from "body-parser";
 
 import { connectArango } from "./database";
 import { bootstrapGateway } from "./gateway";
@@ -15,25 +14,25 @@ import authorRouter from "./routes/getAuthorById";
 import mapRouter from "./routes/getMapData";
 import persistantRouter from "./routes/persist";
 import healthCheckRouter from "./routes/healthCheck";
-
 import locationNameRouter from "./routes/getLocationName";
 import initemptydbRouter from "./routes/initemptydb";
 import pangaeaHarvesterRouter from "./routes/pangaeaHarvester";
 
-const expressPort = process.env.NODE_PORT;
-const app = express();
-
-// load .env file
+// Load environment variables before reading config values
 dotenv.config();
 
-//Middleware Setup
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+const app = express();
 
-// use json for API routes
+const parsePort = (value: string | undefined, fallback = 3000): number => {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const expressPort = parsePort(process.env.NODE_PORT);
+
+// Middleware
 app.use(express.json());
-
-// cors for api address/port
+app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
     credentials: true,
@@ -42,50 +41,34 @@ app.use(
   })
 );
 
-// Initialize the Adapter-Registry Gateway
-bootstrapGateway();
+// Route registry
+const ROUTES = [
+  ["/main", mainRouter],
+  ["/keywords", wordRouter],
+  ["/time", timeRouter],
+  ["/abstract", abstractRouter],
+  ["/author", authorRouter],
+  ["/map", mapRouter],
+  ["/locname", locationNameRouter],
+  ["/persist", persistantRouter],
+  ["/health", healthCheckRouter],
+  ["/initemptydb", initemptydbRouter],
+  ["/pangaea-harvester", pangaeaHarvesterRouter],
+] as const;
 
-// Establish connection to database
-connectArango();
+ROUTES.forEach(([path, router]) => app.use(path, router));
 
-/* ROUTES */
+async function startServer() {
+  try {
+    bootstrapGateway();
+    await connectArango();
+    app.listen(expressPort, () => {
+      console.log(`Server started on port ${expressPort}`);
+    });
+  } catch (error) {
+    console.error("Startup failed:", error);
+    process.exit(1);
+  }
+}
 
-// POST /main
-// POST /main/persist
-// GET /main/all
-app.use("/main", mainRouter);
-
-// POST /keywords
-// GET /keywords/all
-app.use("/keywords", wordRouter);
-
-// POST /time
-// POST /time/persist
-app.use("/time", timeRouter);
-
-// POST /abstract
-app.use("/abstract", abstractRouter);
-
-// POST /author
-app.use("/author", authorRouter);
-
-// GET /map/full
-// GET /map/null
-app.use("/map", mapRouter);
-app.use("/locname", locationNameRouter);
-
-// POST /persist
-app.use("/persist", persistantRouter);
-
-// Services health poll
-app.use("/health", healthCheckRouter);
-
-// new dedicated db router mounting
-app.use("/initemptydb", initemptydbRouter);
-
-// oai pm harvester for testing pangaea
-app.use("/pangaea-harvester", pangaeaHarvesterRouter);
-
-app.listen(expressPort, () => {
-  console.log(`Server started on port ${expressPort}`);
-});
+void startServer();

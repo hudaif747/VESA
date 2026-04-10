@@ -1,24 +1,30 @@
+import { Request, Response, Router } from "express";
 import { getLocationNameFromAPI } from "../services/Maps/getLocationName";
-import express, { Request, Response, Router } from "express";
 
-const router: Router = express.Router(); // Initialize the router
+const router: Router = Router();
 
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { lat, lon } = req.body;
     const locationName = await getLocationNameFromAPI(lat, lon);
     res.status(200).json({ locationName });
-  } catch (error: any) {
-    // Check for specific error types and return appropriate error messages
-    if (error.response && error.response.data && error.response.data.error) {
-      const { code, message } = error.response.data.error;
-      res
-        .status(500)
-        .json({ message: `Error Code: ${code}, Message: ${message}` });
-    } else {
-      // For other errors, return a generic error message
-      res.status(500).json({ message: "Internal server error" });
+  } catch (error: unknown) {
+    const e = error as {
+      response?: {
+        data?: {
+          error?: { code?: number; message?: string };
+        };
+      };
+    };
+    const code = e.response?.data?.error?.code;
+    const message = e.response?.data?.error?.message;
+
+    if (code && message) {
+      res.status(500).json({ message: `Error Code: ${code}, Message: ${message}` });
+      return;
     }
+
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

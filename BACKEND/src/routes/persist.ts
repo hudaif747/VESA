@@ -1,27 +1,26 @@
-import express, { Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
 import { IDatasetID } from "../types/types";
 
-const router: Router = express.Router(); // Initialize the router
+const router: Router = Router();
 
-let keys: IDatasetID[] = []; // Initialize keys as an empty array
-router.post("/", async (req: Request, res: Response) => {
+let keys: IDatasetID[] = [];
+
+router.post("/", (req: Request, res: Response) => {
   try {
-    if (keys.length > 0) {
-      // If keys array is not empty, empty it
-      keys = [];
-    }
-    keys.push(req.body.key);
+    keys = [req.body.key];
     res.status(200).json({ keys });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    res.status(500).json({ message });
   }
 });
 
-router.get("/", async (req: Request, res: Response) => {
+router.get("/", (req: Request, res: Response) => {
   try {
     res.status(200).json({ keys });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    res.status(500).json({ message });
   }
 });
 

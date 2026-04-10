@@ -1,14 +1,17 @@
-import express, { Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
 import { pingDatabase } from "../services/pingService";
 
-const router: Router = express.Router();
+const router: Router = Router();
 
-router.get("/", async (req: Request, res: Response) => {
-  const dbStatus = await pingDatabase(); // Ping the database
-
-  if (dbStatus) {
-    res.status(200).send("OK, Node service and database are healthy");
-  } else {
+router.get("/", async (_req: Request, res: Response) => {
+  try {
+    const dbStatus = await pingDatabase();
+    if (dbStatus) {
+      res.status(200).send("OK, Node service and database are healthy");
+      return;
+    }
+    res.status(500).send("Database connection failed");
+  } catch {
     res.status(500).send("Database connection failed");
   }
 });

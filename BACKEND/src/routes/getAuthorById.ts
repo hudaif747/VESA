@@ -1,4 +1,4 @@
-import express, { Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
 import {
   getServices,
   toLegacyAuthors,
@@ -7,36 +7,33 @@ import {
 } from "../gateway";
 import { IDatasetID } from "../types/types";
 
-const router: Router = express.Router(); // Initialize the router
+const router: Router = Router();
 
-let keys: IDatasetID[] = []; // Initialize keys as an empty array
+const normalizeIds = (value: IDatasetID | IDatasetID[]): AdapterDatasetID[] =>
+  (Array.isArray(value) ? value : [value]) as AdapterDatasetID[];
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    keys = req.body.keys;
-
-    // Use gateway service to get authors
+    const datasetIds = normalizeIds(req.body.keys);
     const { authorService } = getServices();
-    const datasetIds = keys as AdapterDatasetID[];
     const authors = await authorService.getAuthorsForDatasets(datasetIds);
     const result: LegacyAuthor[] = toLegacyAuthors(authors);
-
     res.status(200).json({ result });
-  } catch (err) {
-    res.status(500).json({ error: err || "Internal Server Error" });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    res.status(500).json({ error: message });
   }
 });
 
-router.get("/all", async (req: Request, res: Response) => {
+router.get("/all", async (_req: Request, res: Response) => {
   try {
-    // Use gateway service to get all authors
     const { authorService } = getServices();
     const authors = await authorService.getAllAuthors();
     const result: LegacyAuthor[] = toLegacyAuthors(authors);
-
     res.status(200).json({ result });
-  } catch (err) {
-    res.status(500).json({ error: err || "Internal Server Error" });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal Server Error";
+    res.status(500).json({ error: message });
   }
 });
 

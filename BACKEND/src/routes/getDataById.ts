@@ -1,4 +1,4 @@
-import express, { Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
 import {
   getServices,
   toLegacyDatasets,
@@ -11,63 +11,49 @@ import {
 } from "../helper/getPersistedDatasetId";
 import { IDatasetID } from "../types/types";
 
-const router: Router = express.Router(); // Initialize the router
+const router: Router = Router();
 
-let keys: IDatasetID[][] = []; // Initialize keys as an empty array
+const normalizeIds = (value: IDatasetID | IDatasetID[]): AdapterDatasetID[] =>
+  (Array.isArray(value) ? value : [value]) as AdapterDatasetID[];
 
 router.post("/persist", async (req: Request, res: Response) => {
   try {
-    keys.push(req.body.key);
-
-    // Fetch persisted dataset IDs
+    const input = normalizeIds(req.body.key) as unknown as IDatasetID[];
     const persistedDatasetId = await fetchPersistedDatasetIds();
+    const commonDatasetIds = filterCommonDatasetIds([input], persistedDatasetId);
 
-    // Filter common dataset IDs while maintaining the nested structure
-    const commonDatasetIds = filterCommonDatasetIds(keys, persistedDatasetId);
-
-    console.log("Persisted Dataset IDs:", persistedDatasetId);
-    console.log("Common Dataset IDs:", commonDatasetIds);
-
-    // Use gateway service to get datasets
     const { datasetService } = getServices();
-    const datasetIds = commonDatasetIds.flat() as AdapterDatasetID[];
-    const datasets = await datasetService.getByIds(datasetIds);
+    const datasets = await datasetService.getByIds(commonDatasetIds.flat() as AdapterDatasetID[]);
     const result: LegacyDataset[] = toLegacyDatasets(datasets);
-
     res.status(200).json({ result });
-    keys = []; // Reset the keys array
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    res.status(500).json({ message });
   }
 });
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    keys.push(req.body.key);
-
-    // Use gateway service to get datasets
+    const datasetIds = normalizeIds(req.body.key);
     const { datasetService } = getServices();
-    const datasetIds = keys.flat() as AdapterDatasetID[];
     const datasets = await datasetService.getByIds(datasetIds);
     const result: LegacyDataset[] = toLegacyDatasets(datasets);
-
     res.status(200).json({ result });
-    keys = []; // Reset the keys array
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    res.status(500).json({ message });
   }
 });
 
-router.get("/all", async (req: Request, res: Response) => {
+router.get("/all", async (_req: Request, res: Response) => {
   try {
-    // Use gateway service to get all datasets
     const { datasetService } = getServices();
     const datasets = await datasetService.getAll();
     const result: LegacyDataset[] = toLegacyDatasets(datasets);
-
     res.status(200).json({ result });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    res.status(500).json({ message });
   }
 });
 

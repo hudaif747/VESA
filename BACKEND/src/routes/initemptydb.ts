@@ -4,7 +4,7 @@ import { db } from "../database";
 
 const router = Router();
 
-router.post("/", async (req: Request, res: Response) => {
+router.post("/", async (_req: Request, res: Response) => {
   const dbName = "vesa2db";
   const docCollections = ["Dataset", "Author", "Keywords"];
   const edgeCollections = ["HasAuthor", "HasKeyword"];
@@ -13,12 +13,12 @@ router.post("/", async (req: Request, res: Response) => {
     const systemDb = db.database("_system");
     const databases = await systemDb.listDatabases();
     let databaseRecreated = false;
-    
+
     if (databases.includes(dbName)) {
       await systemDb.dropDatabase(dbName);
       databaseRecreated = true;
     }
-    
+
     await systemDb.createDatabase(dbName);
 
     const targetDb = db.database(dbName);
