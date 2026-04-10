@@ -19,14 +19,7 @@ import { AQLQuery } from "../types/types";
  */
 
 export const mapFullQuery: AQLQuery = `
-LET STAC = (
-    FOR doc IN STACCollection
-        FILTER (doc.extent.spatial.bbox[0][0] == -180 &&
-                doc.extent.spatial.bbox[0][2] == 180 &&
-                doc.extent.spatial.bbox[0][3] == 90 &&
-                doc.extent.spatial.bbox[0][1] == -90 )
-    RETURN doc._id
-    )
+
 
 LET DATASET = (
     FOR dataset in Dataset
@@ -39,7 +32,7 @@ LET DATASET = (
     RETURN dataset._id
     )
 
-RETURN APPEND(STAC, DATASET)
+RETURN DATASET
 `;
 
 /*
@@ -47,15 +40,6 @@ RETURN APPEND(STAC, DATASET)
     a null coverage object i.e missing map data
 */
 export const mapNullQuery: AQLQuery = `
-LET STAC = (
-    FOR doc IN STACCollection
-        FILTER (doc.extent.spatial.bbox[0][0] == null ||
-                doc.extent.spatial.bbox[0][2] == null ||
-                doc.extent.spatial.bbox[0][3] == null ||
-                doc.extent.spatial.bbox[0][1] == null )
-    RETURN doc._id
-)
-
 LET DATASET = (
     FOR dataset in Dataset
         FILTER (dataset.extent.geographic.mean_latitude == null ||
@@ -63,5 +47,5 @@ LET DATASET = (
     RETURN dataset._id
 )
 
-RETURN APPEND(STAC, DATASET)
+RETURN DATASET
 `;

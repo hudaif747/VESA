@@ -21,15 +21,6 @@ LET Dataset_id_list = (
 )
 LET DatasetID = UNIQUE(Dataset_id_list)
 
-LET sLists = (
-    FOR s IN STACCollection
-        FILTER (s.extent.temporal.interval[0][0] != null || s.extent.temporal.interval[0][1] != null)
-        LET start_date = s.extent.temporal.interval[0][0] != null ? s.extent.temporal.interval[0][0] : startDate
-        LET end_date = s.extent.temporal.interval[0][1] != null ? s.extent.temporal.interval[0][1] : DATE_ADD(start_date, 1, "day")
-        FILTER startDate <= end_date AND endDate >= start_date
-        RETURN s._id
-)
-
 LET dLists = (
     FOR d IN Dataset
         FILTER (d._id IN DatasetID && d.extent.temporal != null)
@@ -39,5 +30,5 @@ LET dLists = (
         RETURN d._id
 )
 
-RETURN APPEND(sLists, dLists)
+RETURN dLists
 `;

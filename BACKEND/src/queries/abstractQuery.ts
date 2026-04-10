@@ -18,11 +18,6 @@ export const abstractQuery: AQLQuery = `
         RETURN doc.text_abstract
     )
 
-    LET STAC = (
-    FOR doc in STACCollection
-        FILTER(doc._id == DATASET_ID)
-        RETURN doc.description
-    )
 
-    RETURN collection_name == 'Dataset' ? FIRST(DATASET) : FIRST(STAC)
+    RETURN collection_name == FIRST(DATASET)
 `;

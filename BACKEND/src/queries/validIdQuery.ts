@@ -8,12 +8,7 @@ LET DATASET = (
         FILTER(doc._id == id)
         RETURN true
     )
-    
-LET STAC = (
-    FOR doc in STACCollection   
-        FILTER(doc._id == id)
-        RETURN true
-    )
+
 
 RETURN (LENGTH(DATASET) > 0 || LENGTH(STAC) > 0)
 
@@ -30,15 +25,9 @@ LET datasetCount = (
       RETURN length
 )[0]
 
-LET stacCount = (
-  FOR id IN ids
-    FOR doc IN STACCollection  
-      FILTER doc._id == id
-      COLLECT WITH COUNT INTO length
-      RETURN length
-)[0]
 
-RETURN (datasetCount + stacCount) == LENGTH(ids) 
+
+RETURN (datasetCount) == LENGTH(ids) 
 
 `;
 

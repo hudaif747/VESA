@@ -23,14 +23,9 @@ export const initialPageLoadQuery: AQLQuery = `
     LET DatasetID = UNIQUE(Dataset_id_list)
     
 
-    LET StacID = (
-        FOR s in STACCollection
-            RETURN s._id
-            )
+    
 
-    LET combined = (APPEND(DatasetID, StacID))
-
-    FOR doc in combined
+    FOR doc in DatasetID
         RETURN doc
 `;
 
