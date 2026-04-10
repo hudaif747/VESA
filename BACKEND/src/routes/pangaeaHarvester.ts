@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.post("/run", async (req: Request, res: Response) => {
   try {
-    const limit = req.body.limit || 10;
+    const limit = req.body.limit || 100;
     const targetDb = db.database("vesa2db");
 
     // Background execution to avoid timeout

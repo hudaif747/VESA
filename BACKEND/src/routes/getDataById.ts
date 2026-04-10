@@ -19,7 +19,6 @@ let keys: IDatasetID[][] = []; // Initialize keys as an empty array
 router.post("/persist", async (req: Request, res: Response) => {
   try {
     keys.push(req.body.key);
-    console.log("Keys for POST request:", keys);
 
     // Fetch persisted dataset IDs
     const persistedDatasetId = await fetchPersistedDatasetIds();
@@ -46,7 +45,6 @@ router.post("/persist", async (req: Request, res: Response) => {
 router.post("/", async (req: Request, res: Response) => {
   try {
     keys.push(req.body.key);
-    console.log("Keys for POST request:", keys);
 
     // Use gateway service to get datasets
     const { datasetService } = getServices();

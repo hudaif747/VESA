@@ -11,7 +11,6 @@ router.post("/", async (req: Request, res: Response) => {
       keys = [];
     }
     keys.push(req.body.key);
-    console.log("Persist Keys for POST request:", keys);
     res.status(200).json({ keys });
   } catch (err: any) {
     res.status(500).json({ message: err.message });

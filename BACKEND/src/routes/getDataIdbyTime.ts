@@ -31,6 +31,7 @@ const getDatasetIdByTime = async (
   end: Date
 ): Promise<IDatasetID[]> => {
   try {
+    console.log("start:", start, "end:", end);
     const cursor: ArrayCursor<IDatasetID> = await database.query(
       timechartQuery,
       { start, end }
@@ -60,7 +61,6 @@ router.post("/main", async (req: Request, res: Response) => {
 
     keys.push(result2); //push the Dataset_IDs to keys array
 
-    console.log("Keys for POST request:", keys);
     const cursor: ArrayCursor<IDataset> = await database.query(mainQuery, {
       keys,
     }); // Query the database for the dataset object for the given dataset_ids[keys]
@@ -90,7 +90,6 @@ router.post("/keyword", async (req: Request, res: Response) => {
 
     keys.push(result2); //push the Dataset_IDs to keys array
 
-    console.log("Keys for POST request:", keys);
     const cursor: ArrayCursor<IDataset> = await database.query(keywordQuery, {
       keys,
     }); // Query the database for the dataset object for the given dataset_ids[keys]
@@ -118,7 +117,6 @@ router.post("/main/persist", async (req: Request, res: Response) => {
     //push the Dataset_IDs to keys array
     keys.push(result2);
 
-    console.log("Keys for POST request:", keys);
 
     // Fetch persisted dataset IDs
     const persistedDatasetId = await fetchPersistedDatasetIds();
@@ -158,7 +156,6 @@ router.post("/keyword/persist", async (req: Request, res: Response) => {
     //push the Dataset_IDs to keys array
     keys.push(result2);
 
-    console.log("Keys for POST request:", keys);
 
     // Fetch persisted dataset IDs
     const persistedDatasetId = await fetchPersistedDatasetIds();
