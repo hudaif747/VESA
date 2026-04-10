@@ -31,7 +31,7 @@ const getDatasetIdByTime = async (
   end: Date
 ): Promise<IDatasetID[]> => {
   try {
-    console.log("start:", start, "end:", end);
+    // console.log("start:", start, "end:", end);
     const cursor: ArrayCursor<IDatasetID> = await database.query(
       timechartQuery,
       { start, end }

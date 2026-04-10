@@ -39,7 +39,7 @@ function processResult(result: IKeyword[][]): IKeyword[] {
 
   //console log the sum of count only
   const sum = tfidfResult.reduce((acc, curr) => acc + curr.count, 0);
-  console.log("Sum of count: ", sum);
+  // console.log("Sum of count: ", sum);
   return tfidfResult;
 }
 
