@@ -1,7 +1,6 @@
 import express, { Request, Response, Router } from "express";
 import {
   getServices,
-  toAdapterIds,
   toLegacyAuthors,
   type LegacyAuthor,
   type AdapterDatasetID,
@@ -18,8 +17,8 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Use gateway service to get authors
     const { authorService } = getServices();
-    const adapterIds = toAdapterIds(keys) as AdapterDatasetID[];
-    const authors = await authorService.getAuthorsForDatasets(adapterIds);
+    const datasetIds = keys as AdapterDatasetID[];
+    const authors = await authorService.getAuthorsForDatasets(datasetIds);
     const result: LegacyAuthor[] = toLegacyAuthors(authors);
 
     res.status(200).json({ result });

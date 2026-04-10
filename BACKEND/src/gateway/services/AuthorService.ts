@@ -7,7 +7,6 @@
 
 import { IAuthor, AdapterDatasetID } from '../adapters/contracts';
 import { AdapterRegistry } from './AdapterRegistry';
-import { getSourceFromId } from '../adapters/arango/idMapper';
 
 /**
  * AuthorService aggregates author operations from all registered adapters.
@@ -38,34 +37,17 @@ export class AuthorService {
       return [];
     }
 
-    // Group IDs by their source (adapter)
-    const idsBySource = this.groupIdsBySource(datasetIds);
+    const adapters = this.registry.getAll();
 
-    // Fetch from each adapter in parallel
-    const fetchPromises: Promise<IAuthor[]>[] = [];
+    // Only call adapters that support authors
+    const adaptersWithAuthors = adapters.filter(
+      (adapter) => adapter.getFeatures().supportsAuthors
+    );
 
-    for (const [source, sourceIds] of idsBySource.entries()) {
-      const adapter = this.registry.get(source);
-      if (adapter) {
-        // Check if adapter supports authors
-        const features = adapter.getFeatures();
-        if (features.supportsAuthors) {
-          fetchPromises.push(adapter.getAuthorsForDatasets(sourceIds));
-        }
-      } else {
-        // Try 'arango' adapter as fallback (handles both 'pangaea' and 'stac')
-        const arangoAdapter = this.registry.get('arango');
-        if (arangoAdapter) {
-          fetchPromises.push(arangoAdapter.getAuthorsForDatasets(sourceIds));
-        } else {
-          console.warn(`AuthorService.getAuthorsForDatasets: No adapter found for source '${source}'`);
-        }
-      }
-    }
+    const results = await Promise.allSettled(
+      adaptersWithAuthors.map((adapter) => adapter.getAuthorsForDatasets(datasetIds))
+    );
 
-    const results = await Promise.allSettled(fetchPromises);
-
-    // Aggregate and merge authors from all sources
     const allAuthors: IAuthor[] = [];
     for (const result of results) {
       if (result.status === 'fulfilled') {
@@ -75,7 +57,6 @@ export class AuthorService {
       }
     }
 
-    // Merge authors with the same name
     return this.mergeAuthors(allAuthors);
   }
 
@@ -159,25 +140,5 @@ export class AuthorService {
     return Array.from(merged.values()).sort(
       (a, b) => b.dataset_ids.length - a.dataset_ids.length
     );
-  }
-
-  /**
-   * Group dataset IDs by their source prefix.
-   *
-   * @param ids - Array of dataset IDs
-   * @returns Map of source -> IDs for that source
-   * @private
-   */
-  private groupIdsBySource(ids: AdapterDatasetID[]): Map<string, AdapterDatasetID[]> {
-    const grouped = new Map<string, AdapterDatasetID[]>();
-
-    for (const id of ids) {
-      const source = getSourceFromId(id);
-      const existing = grouped.get(source) ?? [];
-      existing.push(id);
-      grouped.set(source, existing);
-    }
-
-    return grouped;
   }
 }

@@ -7,13 +7,12 @@
  */
 
 import { IDataset, IKeyword, IAuthor, AdapterDatasetID } from '../adapters/contracts';
-import { toLegacyId, toLegacyIds, LegacyDatasetID } from '../adapters/arango';
 
 /**
  * Legacy dataset format expected by the frontend.
  */
 export interface LegacyDataset {
-  id: LegacyDatasetID;
+  id: AdapterDatasetID;
   location_data: {
     west_bound_longitude: number | null;
     east_bound_longitude: number | null;
@@ -41,7 +40,7 @@ export interface LegacyDataset {
 export interface LegacyKeyword {
   keyword: string;
   count: number;
-  dataset_id: LegacyDatasetID[];
+  dataset_id: AdapterDatasetID[];
 }
 
 /**
@@ -50,7 +49,7 @@ export interface LegacyKeyword {
  */
 export interface LegacyAuthor {
   author: string;
-  datasets: LegacyDatasetID[];
+  datasets: AdapterDatasetID[];
 }
 
 /**
@@ -61,7 +60,7 @@ export interface LegacyAuthor {
  */
 export function toLegacyDataset(dataset: IDataset): LegacyDataset {
   return {
-    id: toLegacyId(dataset.id),
+    id: dataset.id,
     location_data: {
       west_bound_longitude: dataset.location_data.west_bound_longitude,
       east_bound_longitude: dataset.location_data.east_bound_longitude,
@@ -103,7 +102,7 @@ export function toLegacyKeyword(keyword: IKeyword): LegacyKeyword {
   return {
     keyword: keyword.keyword,
     count: keyword.count,
-    dataset_id: toLegacyIds(keyword.dataset_ids),
+    dataset_id: keyword.dataset_ids,
   };
 }
 
@@ -126,7 +125,7 @@ export function toLegacyKeywords(keywords: IKeyword[]): LegacyKeyword[] {
 export function toLegacyAuthor(author: IAuthor): LegacyAuthor {
   return {
     author: author.name,
-    datasets: toLegacyIds(author.dataset_ids),
+    datasets: author.dataset_ids,
   };
 }
 

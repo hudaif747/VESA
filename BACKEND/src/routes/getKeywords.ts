@@ -1,7 +1,6 @@
 import express, { Request, Response, Router } from "express";
 import {
   getServices,
-  toAdapterIds,
   toLegacyKeywords,
   type LegacyKeyword,
   type AdapterDatasetID,
@@ -18,8 +17,8 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Use gateway service to get keywords
     const { keywordService } = getServices();
-    const adapterIds = toAdapterIds(keys) as AdapterDatasetID[];
-    const keywords = await keywordService.getKeywordsForDatasets(adapterIds);
+    const datasetIds = keys as AdapterDatasetID[];
+    const keywords = await keywordService.getKeywordsForDatasets(datasetIds);
     const result: LegacyKeyword[] = toLegacyKeywords(keywords);
 
     res.status(200).json({ result });

@@ -1,7 +1,6 @@
 import express, { Request, Response, Router } from "express";
 import {
   getServices,
-  toAdapterIds,
   toLegacyDatasets,
   type LegacyDataset,
   type AdapterDatasetID,
@@ -31,8 +30,8 @@ router.post("/persist", async (req: Request, res: Response) => {
 
     // Use gateway service to get datasets
     const { datasetService } = getServices();
-    const adapterIds = toAdapterIds(commonDatasetIds.flat()) as AdapterDatasetID[];
-    const datasets = await datasetService.getByIds(adapterIds);
+    const datasetIds = commonDatasetIds.flat() as AdapterDatasetID[];
+    const datasets = await datasetService.getByIds(datasetIds);
     const result: LegacyDataset[] = toLegacyDatasets(datasets);
 
     res.status(200).json({ result });
@@ -48,8 +47,8 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Use gateway service to get datasets
     const { datasetService } = getServices();
-    const adapterIds = toAdapterIds(keys.flat()) as AdapterDatasetID[];
-    const datasets = await datasetService.getByIds(adapterIds);
+    const datasetIds = keys.flat() as AdapterDatasetID[];
+    const datasets = await datasetService.getByIds(datasetIds);
     const result: LegacyDataset[] = toLegacyDatasets(datasets);
 
     res.status(200).json({ result });

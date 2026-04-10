@@ -11,7 +11,6 @@ import {
   AdapterDatasetID,
 } from '../adapters/contracts';
 import { AdapterRegistry } from './AdapterRegistry';
-import { getSourceFromId } from '../adapters/arango/idMapper';
 
 /**
  * DatasetService aggregates dataset operations from all registered adapters.
@@ -72,31 +71,17 @@ export class DatasetService {
       return [];
     }
 
-    // Group IDs by their source (adapter)
-    const idsBySource = this.groupIdsBySource(ids);
-
-    // Fetch from each adapter in parallel
-    const fetchPromises: Promise<IDataset[]>[] = [];
-
-    for (const [source, sourceIds] of idsBySource.entries()) {
-      const adapter = this.registry.get(source);
-      if (adapter) {
-        fetchPromises.push(adapter.getDatasetsByIds(sourceIds));
-      } else {
-        // For IDs with unknown source, try the 'arango' adapter as fallback
-        // (it handles both 'pangaea' and 'stac' internally)
-        const arangoAdapter = this.registry.get('arango');
-        if (arangoAdapter) {
-          fetchPromises.push(arangoAdapter.getDatasetsByIds(sourceIds));
-        } else {
-          console.warn(`DatasetService.getByIds: No adapter found for source '${source}'`);
-        }
-      }
+    const adapters = this.registry.getAll();
+    if (adapters.length === 0) {
+      console.warn('DatasetService.getByIds: No adapters registered');
+      return [];
     }
 
-    const results = await Promise.allSettled(fetchPromises);
+    // Fetch from all adapters in parallel using IDs as-is
+    const results = await Promise.allSettled(
+      adapters.map((adapter) => adapter.getDatasetsByIds(ids))
+    );
 
-    // Aggregate successful results
     const datasets: IDataset[] = [];
     for (const result of results) {
       if (result.status === 'fulfilled') {
@@ -116,23 +101,12 @@ export class DatasetService {
    * @returns The dataset if found, null otherwise
    */
   async getById(id: string): Promise<IDataset | null> {
-    // If ID has a source prefix, route to specific adapter
-    if (id.includes(':')) {
-      const source = getSourceFromId(id as AdapterDatasetID);
-      const adapter = this.registry.get(source) ?? this.registry.get('arango');
-
-      if (adapter) {
-        const results = await adapter.getDatasetsByIds([id as AdapterDatasetID]);
-        return results.length > 0 ? results[0] : null;
-      }
-    }
-
-    // Otherwise, try all adapters until we find it
     const adapters = this.registry.getAll();
+
     for (const adapter of adapters) {
-      const result = await adapter.getDatasetById(id);
-      if (result) {
-        return result;
+      const results = await adapter.getDatasetsByIds([id as AdapterDatasetID]);
+      if (results.length > 0) {
+        return results[0];
       }
     }
 
@@ -168,25 +142,5 @@ export class DatasetService {
     }
 
     return datasets;
-  }
-
-  /**
-   * Group dataset IDs by their source prefix.
-   *
-   * @param ids - Array of dataset IDs
-   * @returns Map of source -> IDs for that source
-   * @private
-   */
-  private groupIdsBySource(ids: AdapterDatasetID[]): Map<string, AdapterDatasetID[]> {
-    const grouped = new Map<string, AdapterDatasetID[]>();
-
-    for (const id of ids) {
-      const source = getSourceFromId(id);
-      const existing = grouped.get(source) ?? [];
-      existing.push(id);
-      grouped.set(source, existing);
-    }
-
-    return grouped;
   }
 }

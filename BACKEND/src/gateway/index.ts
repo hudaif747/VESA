@@ -48,17 +48,6 @@ export type {
 // Arango Adapter (for direct use if needed)
 export { ArangoAdapter } from './adapters/arango';
 
-// ID mapping utilities
-export {
-  toLegacyId,
-  toAdapterId,
-  toLegacyIds,
-  toAdapterIds,
-  isLegacyId,
-  isAdapterId,
-  type LegacyDatasetID,
-} from './adapters/arango';
-
 // Response Transformers (legacy format for API responses)
 export {
   toLegacyDataset,

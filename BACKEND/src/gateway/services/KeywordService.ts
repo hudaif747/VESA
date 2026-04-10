@@ -7,7 +7,6 @@
 
 import { IKeyword, AdapterDatasetID } from '../adapters/contracts';
 import { AdapterRegistry } from './AdapterRegistry';
-import { getSourceFromId } from '../adapters/arango/idMapper';
 
 /**
  * KeywordService aggregates keyword operations from all registered adapters.
@@ -35,30 +34,12 @@ export class KeywordService {
       return [];
     }
 
-    // Group IDs by their source (adapter)
-    const idsBySource = this.groupIdsBySource(datasetIds);
+    const adapters = this.registry.getAll();
 
-    // Fetch from each adapter in parallel
-    const fetchPromises: Promise<IKeyword[]>[] = [];
+    const results = await Promise.allSettled(
+      adapters.map((adapter) => adapter.getKeywordsForDatasets(datasetIds))
+    );
 
-    for (const [source, sourceIds] of idsBySource.entries()) {
-      const adapter = this.registry.get(source);
-      if (adapter) {
-        fetchPromises.push(adapter.getKeywordsForDatasets(sourceIds));
-      } else {
-        // Try 'arango' adapter as fallback (handles both 'pangaea' and 'stac')
-        const arangoAdapter = this.registry.get('arango');
-        if (arangoAdapter) {
-          fetchPromises.push(arangoAdapter.getKeywordsForDatasets(sourceIds));
-        } else {
-          console.warn(`KeywordService.getKeywordsForDatasets: No adapter found for source '${source}'`);
-        }
-      }
-    }
-
-    const results = await Promise.allSettled(fetchPromises);
-
-    // Aggregate and merge keywords from all sources
     const allKeywords: IKeyword[] = [];
     for (const result of results) {
       if (result.status === 'fulfilled') {
@@ -145,25 +126,5 @@ export class KeywordService {
 
     // Sort by count descending
     return Array.from(merged.values()).sort((a, b) => b.count - a.count);
-  }
-
-  /**
-   * Group dataset IDs by their source prefix.
-   *
-   * @param ids - Array of dataset IDs
-   * @returns Map of source -> IDs for that source
-   * @private
-   */
-  private groupIdsBySource(ids: AdapterDatasetID[]): Map<string, AdapterDatasetID[]> {
-    const grouped = new Map<string, AdapterDatasetID[]>();
-
-    for (const id of ids) {
-      const source = getSourceFromId(id);
-      const existing = grouped.get(source) ?? [];
-      existing.push(id);
-      grouped.set(source, existing);
-    }
-
-    return grouped;
   }
 }

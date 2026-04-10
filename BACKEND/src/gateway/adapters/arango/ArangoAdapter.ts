@@ -23,8 +23,6 @@ import { keywordQuery } from '../../../queries/keywordQuery';
 import { authorQuery } from '../../../queries/authorQuery';
 import { initialPageLoadQuery } from '../../../queries/initialLoadQuery';
 import processResult from '../../../services/Wordcloud/lenghtFiltering';
-import { toLegacyIds, toAdapterIds } from './idMapper';
-import { mapToDatasets, mapToKeywords, mapToAuthors } from './typeMapper';
 
 /**
  * ArangoAdapter implements the IDataAdapter interface for the existing
@@ -82,20 +80,8 @@ export class ArangoAdapter implements IDataAdapter {
    */
   async getDatasetById(id: string): Promise<IDataset | null> {
     try {
-      // Try both pangaea and stac prefixes
-      const possibleIds: AdapterDatasetID[] = [
-        `pangaea:${id}` as AdapterDatasetID,
-        `stac:${id}` as AdapterDatasetID,
-      ];
-
-      for (const adapterId of possibleIds) {
-        const results = await this.getDatasetsByIds([adapterId]);
-        if (results.length > 0) {
-          return results[0];
-        }
-      }
-
-      return null;
+      const results = await this.getDatasetsByIds([id as AdapterDatasetID]);
+      return results[0] ?? null;
     } catch (error) {
       console.error('ArangoAdapter.getDatasetById failed:', error);
       return null;
@@ -114,17 +100,12 @@ export class ArangoAdapter implements IDataAdapter {
     }
 
     try {
-      // Convert to legacy format for the AQL query
-      const legacyIds = toLegacyIds(ids);
-
       const cursor: ArrayCursor<any> = await this.database.query(mainQuery, {
-        keys: legacyIds,
+        keys: ids,
       });
 
       const rawResults = await cursor.all();
-
-      // Filter out null results and map to contract type
-      return mapToDatasets(rawResults.filter((r) => r !== null));
+      return rawResults.filter((r) => r !== null) as IDataset[];
     } catch (error) {
       console.error('ArangoAdapter.getDatasetsByIds failed:', error);
       return [];
@@ -145,20 +126,20 @@ export class ArangoAdapter implements IDataAdapter {
     }
 
     try {
-      // Convert to legacy format for the AQL query
-      const legacyIds = toLegacyIds(datasetIds);
-
       const cursor: ArrayCursor<any> = await this.database.query(keywordQuery, {
-        keys: legacyIds,
+        keys: datasetIds,
       });
 
       const rawResults = await cursor.all();
-
-      // Apply TF-IDF processing (reuses existing logic)
       const processedKeywords = processResult(rawResults);
 
-      // Map to contract type with converted IDs
-      return mapToKeywords(processedKeywords);
+      const normalizedKeywords: IKeyword[] = (processedKeywords as any[]).map((k) => ({
+        keyword: k.keyword,
+        count: k.count,
+        dataset_ids: (k.dataset_ids ?? k.dataset_id ?? []) as AdapterDatasetID[],
+      }));
+
+      return normalizedKeywords;
     } catch (error) {
       console.error('ArangoAdapter.getKeywordsForDatasets failed:', error);
       return [];
@@ -204,16 +185,18 @@ export class ArangoAdapter implements IDataAdapter {
     }
 
     try {
-      // Convert to legacy format for the AQL query
-      const legacyIds = toLegacyIds(datasetIds);
-
       const cursor: ArrayCursor<any> = await this.database.query(authorQuery, {
-        keys: legacyIds,
+        keys: datasetIds,
       });
 
       const rawResults = await cursor.all();
 
-      return mapToAuthors(rawResults);
+      const normalizedAuthors: IAuthor[] = (rawResults as any[]).map((a) => ({
+        name: a.name ?? a.author,
+        dataset_ids: (a.dataset_ids ?? a.datasets ?? []) as AdapterDatasetID[],
+      }));
+
+      return normalizedAuthors;
     } catch (error) {
       console.error('ArangoAdapter.getAuthorsForDatasets failed:', error);
       return [];
@@ -285,9 +268,9 @@ export class ArangoAdapter implements IDataAdapter {
   private async getAllDatasetIds(): Promise<AdapterDatasetID[]> {
     try {
       const cursor: ArrayCursor<string> = await this.database.query(initialPageLoadQuery);
-      const legacyIds = await cursor.all();
+      const ids = await cursor.all();
 
-      return toAdapterIds(legacyIds);
+      return ids as AdapterDatasetID[];
     } catch (error) {
       console.error('ArangoAdapter.getAllDatasetIds failed:', error);
       return [];
