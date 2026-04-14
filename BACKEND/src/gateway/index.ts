@@ -45,8 +45,7 @@ export type {
   AdapterFeatures,
 } from './adapters/contracts';
 
-// Arango Adapter (for direct use if needed)
-export { ArangoAdapter } from './adapters/arango';
+
 
 // Response Transformers (legacy format for API responses)
 export {
@@ -61,9 +60,9 @@ export {
   type LegacyAuthor,
 } from './transformers';
 
+import { VesaAdapter } from './adapters';
 // Import for bootstrap
 import { registry } from './services';
-import { ArangoAdapter } from './adapters/arango';
 
 /**
  * Bootstrap the gateway by registering all adapters.
@@ -90,7 +89,7 @@ export function bootstrapGateway(): void {
 
   // Register the ArangoDB adapter (handles both PANGAEA and STAC data)
   if (!registry.has('arango')) {
-    registry.register(new ArangoAdapter());
+    registry.register(new VesaAdapter());
   }
 
   // Future: Register additional adapters here

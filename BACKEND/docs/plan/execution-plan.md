@@ -30,8 +30,11 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
    * edge de-dup constraints for `HasAuthor`/`HasKeyword`
 
 5. **Simplify read-path adapter into “VESA reader”**
-   Current `ArangoAdapter` is still framed as one adapter in a multi-source aggregator.
-   In revised architecture, external sources are pre-ingested, so this becomes a single graph reader. Keep query methods, but conceptually make it the local graph adapter.
+   Replace multi-source adapter framing with a single local graph reader for runtime queries.
+   * Keep current query methods (`search`, `getDatasetById`, keywords/authors APIs)
+   * Re-label `VesaAdapter` as the VESA local graph reader
+   * Remove/bypass non-essential adapter-registry logic on read path (keep only compatibility wiring if still needed)
+   * Treat external sources as ingestion-time concerns only (not runtime read fan-out)
 
 6. **Remove/limit runtime double mapping**
    You currently map adapter-domain models to legacy response models via `toLegacyDataset`, `toLegacyKeyword`, `toLegacyAuthor` in `responseTransformers.ts`.
