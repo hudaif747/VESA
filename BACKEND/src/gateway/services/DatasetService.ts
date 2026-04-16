@@ -5,7 +5,7 @@
  * routing requests to the appropriate adapters and aggregating results.
  */
 
-import { IDataset, SearchParams, AdapterDatasetID, IDataAdapter } from '../adapters/contracts';
+import { IDataset, SearchParams, AdapterDatasetID, IVesaReader } from '../adapters/contracts';
 
 /**
  * DatasetService aggregates dataset operations from all registered adapters.
@@ -18,7 +18,7 @@ import { IDataset, SearchParams, AdapterDatasetID, IDataAdapter } from '../adapt
  * ```
  */
 export class DatasetService {
-  constructor(private reader: IDataAdapter) {}
+  constructor(private reader: IVesaReader) {}
 
   /**
    * Search for datasets across all adapters.

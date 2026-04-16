@@ -7,7 +7,7 @@
  * @example
  * ```typescript
  * import {
- *   IDataAdapter,
+ *   IVesaReader,
  *   IDataset,
  *   IKeyword,
  *   SearchParams,
@@ -26,4 +26,4 @@ export type { BoundingBox, DateRange, SearchParams } from './params';
 export type { AdapterFeatures } from './features';
 
 // The main adapter interface
-export type { IDataAdapter } from './IDataAdapter';
+export type { IVesaReader } from './IVesaReader';

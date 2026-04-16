@@ -12,8 +12,8 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
    Reuse and split logic from `harvestPangaea` in `harvester.ts`.
 
 2. **Define the new ingestion contract explicitly**
-   Your revised doc says “Universal Data Packet”, but code currently centers on `IDataAdapter`.
-   Add a separate payload contract (e.g., `IUniversalDataPacket`) under `types.ts` or a new ingestion contracts file.
+   Your revised doc says “Universal Data Packet”, but older code centered on `IDataAdapter` (recently renamed to `IVesaReader` to reflect the single local graph reader pivot).
+   Add a separate payload contract (e.g., `IDataAdapter`) under `types.ts` or a new ingestion contracts file.
 
 3. **Add ingestion API endpoints for Init UI lifecycle**
    Current routes are query-centric; add/expand ingestion routes for:

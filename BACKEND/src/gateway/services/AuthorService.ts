@@ -5,7 +5,7 @@
  * aggregating and merging author data from multiple data sources.
  */
 
-import { IAuthor, AdapterDatasetID, IDataAdapter } from '../adapters/contracts';
+import { IAuthor, AdapterDatasetID, IVesaReader } from '../adapters/contracts';
 
 /**
  * AuthorService aggregates author operations from all registered adapters.
@@ -21,7 +21,7 @@ import { IAuthor, AdapterDatasetID, IDataAdapter } from '../adapters/contracts';
  * ```
  */
 export class AuthorService {
-  constructor(private reader: IDataAdapter) {}
+  constructor(private reader: IVesaReader) {}
 
   /**
    * Get authors for specific datasets.

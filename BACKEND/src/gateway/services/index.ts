@@ -12,7 +12,7 @@ export { AuthorService } from './AuthorService';
 import { DatasetService } from './DatasetService';
 import { KeywordService } from './KeywordService';
 import { AuthorService } from './AuthorService';
-import { IDataAdapter } from '../adapters/contracts';
+import { IVesaReader } from '../adapters/contracts';
 import { VesaAdapter } from '../adapters';
 
 /**
@@ -29,7 +29,7 @@ export interface ServiceContainer {
  *
  * @param reader - Optional custom reader. Uses VesaAdapter if not provided.
  */
-export function initializeServices(reader?: IDataAdapter): ServiceContainer {
+export function initializeServices(reader?: IVesaReader): ServiceContainer {
   const vesaReader = reader ?? new VesaAdapter();
 
   return {

@@ -1,7 +1,7 @@
 import { Database } from 'arangojs';
 import { ArrayCursor } from 'arangojs/cursor';
 import {
-  IDataAdapter,
+  IVesaReader,
   IDataset,
   IKeyword,
   IAuthor,
@@ -17,9 +17,9 @@ import { initialPageLoadQuery } from '../../queries/initialLoadQuery';
 import processResult from '../../services/Wordcloud/lenghtFiltering';
 
 /**
- * VesaAdapter implements IDataAdapter as the local unified graph reader.
+ * VesaAdapter implements IVesaReader as the local unified graph reader.
  */
-export class VesaAdapter implements IDataAdapter {
+export class VesaAdapter implements IVesaReader {
   readonly source = 'vesa';
   private database: Database;
 

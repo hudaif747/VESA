@@ -30,7 +30,7 @@ export {
 
 // Adapter Contracts
 export type {
-  IDataAdapter,
+  IVesaReader,
   IDataset,
   IKeyword,
   IAuthor,

@@ -5,7 +5,7 @@
  * aggregating and merging keywords from multiple data sources.
  */
 
-import { IKeyword, AdapterDatasetID, IDataAdapter } from '../adapters/contracts';
+import { IKeyword, AdapterDatasetID, IVesaReader } from '../adapters/contracts';
 
 /**
  * KeywordService aggregates keyword operations from all registered adapters.
@@ -18,7 +18,7 @@ import { IKeyword, AdapterDatasetID, IDataAdapter } from '../adapters/contracts'
  * ```
  */
 export class KeywordService {
-  constructor(private reader: IDataAdapter) {}
+  constructor(private reader: IVesaReader) {}
 
   /**
    * Get keywords for specific datasets.

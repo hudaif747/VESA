@@ -1,14 +1,13 @@
 /**
- * IDataAdapter - The core interface for the Adapter-Registry Model.
+ * IVesaReader - The core interface for the local graph read path.
  *
- * Every data source adapter (PANGAEA, GBIF, OpenAlex, STAC, etc.) must
- * implement this interface. This creates an Anti-Corruption Layer that
- * isolates the core domain from external API specifics.
+ * This provides a unified reading interface for runtime queries,
+ * abstracting away the underlying local data store.
  *
  * @example
  * ```typescript
- * class PangaeaAdapter implements IDataAdapter {
- *   readonly source = 'pangaea';
+ * class VesaGraphReader implements IVesaReader {
+ *   readonly source = 'vesa';
  *   // ... implement all methods
  * }
  * ```
@@ -18,7 +17,7 @@ import { IDataset, IKeyword, IAuthor, AdapterDatasetID } from './types';
 import { SearchParams } from './params';
 import { AdapterFeatures } from './features';
 
-export interface IDataAdapter {
+export interface IVesaReader {
   /**
    * Unique identifier for this adapter.
    * Used as the prefix in dataset IDs (e.g., "pangaea", "gbif", "openalex", "stac").
