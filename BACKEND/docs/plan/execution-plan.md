@@ -48,7 +48,7 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
    Runtime queries now use a single local graph reader (`VesaAdapter`).
    Any remaining registry-era compatibility wiring should be deleted incrementally.
 
-9. **Normalize ID strategy globally**
+9. **Normalize ID strategy globally** <span style="color:green; font-weight:bold">COMPLETED: Removed idMapper.ts and related files and imports for it</span>
    Current ID conversion utilities (`toAdapterId`, `toLegacyId`) in `idMapper.ts` should move to ingestion boundary + compatibility endpoints only.
 
 10. **Update docs/tests to new truth**
