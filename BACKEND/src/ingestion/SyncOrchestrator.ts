@@ -11,45 +11,70 @@ export class SyncOrchestrator {
   private prefixer = new PrefixingService();
   private extractor = new RelationExtractor();
   private writer: GraphWriter;
+  
+  private state: { status: 'running' | 'idle' | 'failed', processed: number, total: number, current_prefix: string } = {
+    status: 'idle',
+    processed: 0,
+    total: 0,
+    current_prefix: ''
+  };
+  private abortSignal = false;
 
   constructor(db: Database) {
     this.writer = new GraphWriter(db);
   }
 
-  public async sync(url: string, prefix: string, limit: number = 1000): Promise<void> {
+  public getStatus() {
+    return this.state;
+  }
+
+  public stop() {
+    if (this.state.status === 'running') {
+      this.abortSignal = true;
+    }
+  }
+
+  public async sync(url: string, prefix: string, limit: number = 1000, batchSize: number = 100): Promise<void> {
+    if (this.state.status === 'running') {
+      throw new Error(`[SyncOrchestrator] A sync is already running.`);
+    }
+
+    this.state = { status: 'running', processed: 0, total: limit, current_prefix: prefix };
+    this.abortSignal = false;
+
     console.log(`[SyncOrchestrator] Initiating handshake with ${url}...`);
     const isValid = await this.validator.validate(url);
     
     if (!isValid) {
+      this.state.status = 'failed';
       throw new Error(`[SyncOrchestrator] Handshake failed. Source does not comply with IDataAdapter contract.`);
     }
 
     console.log(`[SyncOrchestrator] Handshake successful. Beginning sync up to ${limit} records.`);
-    
-    let processed = 0;
 
     try {
-      // Note: Assumes a pagination or simple array GET for the generalized harvester endpoint
-      // In a real implementation this would iterate using resumption tokens like harvester.ts
-      const response = await axios.get(url, { params: { limit } });
+      // Basic pagination simulation matching previous implementation
+      const response = await axios.get(url, { params: { limit: batchSize } });
       const records: IDataAdapter[] = Array.isArray(response.data) ? response.data : [response.data];
 
       for (const record of records) {
-        if (processed >= limit) break;
+        if (this.state.processed >= limit || this.abortSignal) break;
 
         const prefixedRecord = this.prefixer.applyPrefix(prefix, record);
         const graphPayload = this.extractor.extract(prefixedRecord);
         await this.writer.write(graphPayload);
 
-        processed++;
-        if (processed % 100 === 0) {
-          console.log(`[SyncOrchestrator] Processed ${processed}/${limit} records...`);
+        this.state.processed++;
+        if (this.state.processed % 100 === 0) {
+          console.log(`[SyncOrchestrator] Processed ${this.state.processed}/${limit} records...`);
         }
       }
 
-      console.log(`[SyncOrchestrator] Sync complete. Processed ${processed} records.`);
+      this.state.status = 'idle';
+      console.log(`[SyncOrchestrator] Sync complete or stopped. Processed ${this.state.processed} records.`);
     } catch (err: any) {
-      console.error(`[SyncOrchestrator] Sync failed at record ${processed}:`, err.message);
+      this.state.status = 'failed';
+      console.error(`[SyncOrchestrator] Sync failed at record ${this.state.processed}:`, err.message);
       throw err;
     }
   }

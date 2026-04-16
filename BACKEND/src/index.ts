@@ -57,15 +57,11 @@ const ROUTES = [
   ["/health", healthCheckRouter],
   ["/initemptydb", initemptydbRouter],
   ["/pangaea-harvester", pangaeaHarvesterRouter],
+  ["/pangaea", pangaeaProxyRouter],
+  ["/sync", getIngestionRouter()],
 ] as const;
 
 ROUTES.forEach(([path, router]) => app.use(path, router));
-
-// Mount the standalone PANGAEA proxy to expose the new ingestion contract endpoint
-app.use("/pangaea", pangaeaProxyRouter);
-
-// Mount the Ingestion Domain API for UI Lifecycle (Sync)
-app.use("/sync", getIngestionRouter());
 
 async function startServer() {
   try {
