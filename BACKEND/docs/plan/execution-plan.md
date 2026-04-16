@@ -29,7 +29,7 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
    * unique indexes on normalized IDs
    * edge de-dup constraints for `HasAuthor`/`HasKeyword`
 
-5. **Simplify read-path adapter into “VESA reader”**
+5. **Simplify read-path adapter into “VESA reader”**  <span style="color:green; font-weight:bold">COMPLETED</span>
    Replace multi-source adapter framing with a single local graph reader for runtime queries.
    * Keep current query methods (`search`, `getDatasetById`, keywords/authors APIs)
    * Re-label `VesaAdapter` as the VESA local graph reader
@@ -43,9 +43,10 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
 7. **Re-scope services: query services + ingestion services**
    Keep query services (`DatasetService`, `KeywordService`, `AuthorService`) but add ingestion service wiring in `index.ts` or parallel module.
 
-8. **Decide fate of AdapterRegistry**
-   `AdapterRegistry` and `bootstrapGateway` are useful if you still want pluggable readers.
-   If revised model is strictly “one unified graph reader”, keep registry minimal or bypass for runtime reads.
+8. **Decide fate of AdapterRegistry**  <span style="color:green; font-weight:bold">COMPLETED</span>
+   AdapterRegistry runtime fan-out is removed for read path.
+   Runtime queries now use a single local graph reader (`VesaAdapter`).
+   Any remaining registry-era compatibility wiring should be deleted incrementally.
 
 9. **Normalize ID strategy globally**
    Current ID conversion utilities (`toAdapterId`, `toLegacyId`) in `idMapper.ts` should move to ingestion boundary + compatibility endpoints only.

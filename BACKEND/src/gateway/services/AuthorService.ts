@@ -5,8 +5,7 @@
  * aggregating and merging author data from multiple data sources.
  */
 
-import { IAuthor, AdapterDatasetID } from '../adapters/contracts';
-import { AdapterRegistry } from './AdapterRegistry';
+import { IAuthor, AdapterDatasetID, IDataAdapter } from '../adapters/contracts';
 
 /**
  * AuthorService aggregates author operations from all registered adapters.
@@ -22,7 +21,7 @@ import { AdapterRegistry } from './AdapterRegistry';
  * ```
  */
 export class AuthorService {
-  constructor(private registry: AdapterRegistry) {}
+  constructor(private reader: IDataAdapter) {}
 
   /**
    * Get authors for specific datasets.
@@ -33,31 +32,16 @@ export class AuthorService {
    * @returns Array of authors with their associated dataset IDs
    */
   async getAuthorsForDatasets(datasetIds: AdapterDatasetID[]): Promise<IAuthor[]> {
-    if (datasetIds.length === 0) {
+    if (datasetIds.length === 0) return [];
+    if (!this.reader.getFeatures().supportsAuthors) return [];
+
+    try {
+      const authors = await this.reader.getAuthorsForDatasets(datasetIds);
+      return this.mergeAuthors(authors);
+    } catch (error) {
+      console.error('AuthorService.getAuthorsForDatasets failed:', error);
       return [];
     }
-
-    const adapters = this.registry.getAll();
-
-    // Only call adapters that support authors
-    const adaptersWithAuthors = adapters.filter(
-      (adapter) => adapter.getFeatures().supportsAuthors
-    );
-
-    const results = await Promise.allSettled(
-      adaptersWithAuthors.map((adapter) => adapter.getAuthorsForDatasets(datasetIds))
-    );
-
-    const allAuthors: IAuthor[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        allAuthors.push(...result.value);
-      } else {
-        console.error('AuthorService.getAuthorsForDatasets: Fetch failed:', result.reason);
-      }
-    }
-
-    return this.mergeAuthors(allAuthors);
   }
 
   /**
@@ -66,40 +50,15 @@ export class AuthorService {
    * @returns Aggregated and merged array of all authors
    */
   async getAllAuthors(): Promise<IAuthor[]> {
-    const adapters = this.registry.getAll();
+    if (!this.reader.getFeatures().supportsAuthors) return [];
 
-    if (adapters.length === 0) {
-      console.warn('AuthorService.getAllAuthors: No adapters registered');
+    try {
+      const authors = await this.reader.getAllAuthors();
+      return this.mergeAuthors(authors);
+    } catch (error) {
+      console.error('AuthorService.getAllAuthors failed:', error);
       return [];
     }
-
-    // Only fetch from adapters that support authors
-    const adaptersWithAuthors = adapters.filter(
-      (adapter) => adapter.getFeatures().supportsAuthors
-    );
-
-    if (adaptersWithAuthors.length === 0) {
-      console.warn('AuthorService.getAllAuthors: No adapters support author data');
-      return [];
-    }
-
-    // Fetch from all supporting adapters in parallel
-    const results = await Promise.allSettled(
-      adaptersWithAuthors.map((adapter) => adapter.getAllAuthors())
-    );
-
-    // Aggregate authors from all sources
-    const allAuthors: IAuthor[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        allAuthors.push(...result.value);
-      } else {
-        console.error('AuthorService.getAllAuthors: Adapter failed:', result.reason);
-      }
-    }
-
-    // Merge authors with the same name
-    return this.mergeAuthors(allAuthors);
   }
 
   /**

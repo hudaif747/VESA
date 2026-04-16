@@ -19,8 +19,6 @@
 
 // Services and Registry
 export {
-  AdapterRegistry,
-  registry,
   DatasetService,
   KeywordService,
   AuthorService,
@@ -61,84 +59,37 @@ export {
 } from './transformers';
 
 import { VesaAdapter } from './adapters';
-// Import for bootstrap
-import { registry } from './services';
+
+const gatewayAdapter = new VesaAdapter();
+let gatewayInitialized = false;
 
 /**
- * Bootstrap the gateway by registering all adapters.
+ * Bootstrap the gateway.
  *
- * This function should be called once during application startup,
- * before any services are used.
- *
- * @example
- * ```typescript
- * // In your main application file (e.g., index.ts)
- * import { bootstrapGateway } from './gateway';
- *
- * // Initialize gateway before starting the server
- * bootstrapGateway();
- *
- * // Then start your Express server
- * app.listen(port, () => {
- *   console.log(`Server started on port ${port}`);
- * });
- * ```
+ * Initializes single-reader runtime mode.
  */
 export function bootstrapGateway(): void {
-  console.log('Gateway: Initializing...');
-
-  // Register the ArangoDB adapter (handles both PANGAEA and STAC data)
-  if (!registry.has('arango')) {
-    registry.register(new VesaAdapter());
-  }
-
-  // Future: Register additional adapters here
-  // if (!registry.has('gbif')) {
-  //   registry.register(new GbifAdapter());
-  // }
-  // if (!registry.has('openalex')) {
-  //   registry.register(new OpenAlexAdapter());
-  // }
-
-  console.log(
-    'Gateway: Initialized with adapters:',
-    registry.getSources().join(', ')
-  );
+  if (gatewayInitialized) return;
+  gatewayInitialized = true;
+  console.log(`Gateway: Initialized with reader: ${gatewayAdapter.source}`);
 }
 
 /**
  * Check if the gateway has been bootstrapped.
- *
- * @returns true if at least one adapter is registered
  */
 export function isGatewayInitialized(): boolean {
-  return registry.size > 0;
+  return gatewayInitialized;
 }
 
 /**
- * Perform health checks on all registered adapters.
- *
- * @returns Object mapping adapter sources to their health status
+ * Perform health check on the single runtime reader.
  */
 export async function checkGatewayHealth(): Promise<Record<string, boolean>> {
-  const adapters = registry.getAll();
-  const results: Record<string, boolean> = {};
-
-  const healthChecks = await Promise.allSettled(
-    adapters.map(async (adapter) => {
-      const isHealthy = await adapter.healthCheck();
-      return { source: adapter.source, isHealthy };
-    })
-  );
-
-  for (const result of healthChecks) {
-    if (result.status === 'fulfilled') {
-      results[result.value.source] = result.value.isHealthy;
-    } else {
-      // If health check itself failed, mark as unhealthy
-      console.error('Gateway health check failed:', result.reason);
-    }
+  try {
+    const isHealthy = await gatewayAdapter.healthCheck();
+    return { [gatewayAdapter.source]: isHealthy };
+  } catch (error) {
+    console.error('Gateway health check failed:', error);
+    return { [gatewayAdapter.source]: false };
   }
-
-  return results;
 }

@@ -5,8 +5,7 @@
  * aggregating and merging keywords from multiple data sources.
  */
 
-import { IKeyword, AdapterDatasetID } from '../adapters/contracts';
-import { AdapterRegistry } from './AdapterRegistry';
+import { IKeyword, AdapterDatasetID, IDataAdapter } from '../adapters/contracts';
 
 /**
  * KeywordService aggregates keyword operations from all registered adapters.
@@ -19,7 +18,7 @@ import { AdapterRegistry } from './AdapterRegistry';
  * ```
  */
 export class KeywordService {
-  constructor(private registry: AdapterRegistry) {}
+  constructor(private reader: IDataAdapter) {}
 
   /**
    * Get keywords for specific datasets.
@@ -30,27 +29,15 @@ export class KeywordService {
    * @returns Array of keywords with counts and associated dataset IDs
    */
   async getKeywordsForDatasets(datasetIds: AdapterDatasetID[]): Promise<IKeyword[]> {
-    if (datasetIds.length === 0) {
+    if (datasetIds.length === 0) return [];
+
+    try {
+      const keywords = await this.reader.getKeywordsForDatasets(datasetIds);
+      return this.mergeKeywords(keywords);
+    } catch (error) {
+      console.error('KeywordService.getKeywordsForDatasets failed:', error);
       return [];
     }
-
-    const adapters = this.registry.getAll();
-
-    const results = await Promise.allSettled(
-      adapters.map((adapter) => adapter.getKeywordsForDatasets(datasetIds))
-    );
-
-    const allKeywords: IKeyword[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        allKeywords.push(...result.value);
-      } else {
-        console.error('KeywordService.getKeywordsForDatasets: Fetch failed:', result.reason);
-      }
-    }
-
-    // Merge keywords with the same text
-    return this.mergeKeywords(allKeywords);
   }
 
   /**
@@ -59,30 +46,13 @@ export class KeywordService {
    * @returns Aggregated and merged array of all keywords
    */
   async getAllKeywords(): Promise<IKeyword[]> {
-    const adapters = this.registry.getAll();
-
-    if (adapters.length === 0) {
-      console.warn('KeywordService.getAllKeywords: No adapters registered');
+    try {
+      const keywords = await this.reader.getAllKeywords();
+      return this.mergeKeywords(keywords);
+    } catch (error) {
+      console.error('KeywordService.getAllKeywords failed:', error);
       return [];
     }
-
-    // Fetch from all adapters in parallel
-    const results = await Promise.allSettled(
-      adapters.map((adapter) => adapter.getAllKeywords())
-    );
-
-    // Aggregate keywords from all sources
-    const allKeywords: IKeyword[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        allKeywords.push(...result.value);
-      } else {
-        console.error('KeywordService.getAllKeywords: Adapter failed:', result.reason);
-      }
-    }
-
-    // Merge keywords with the same text
-    return this.mergeKeywords(allKeywords);
   }
 
   /**

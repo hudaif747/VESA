@@ -5,12 +5,7 @@
  * routing requests to the appropriate adapters and aggregating results.
  */
 
-import {
-  IDataset,
-  SearchParams,
-  AdapterDatasetID,
-} from '../adapters/contracts';
-import { AdapterRegistry } from './AdapterRegistry';
+import { IDataset, SearchParams, AdapterDatasetID, IDataAdapter } from '../adapters/contracts';
 
 /**
  * DatasetService aggregates dataset operations from all registered adapters.
@@ -23,7 +18,7 @@ import { AdapterRegistry } from './AdapterRegistry';
  * ```
  */
 export class DatasetService {
-  constructor(private registry: AdapterRegistry) {}
+  constructor(private reader: IDataAdapter) {}
 
   /**
    * Search for datasets across all adapters.
@@ -32,29 +27,12 @@ export class DatasetService {
    * @returns Aggregated array of datasets from all adapters
    */
   async search(params: SearchParams): Promise<IDataset[]> {
-    const adapters = this.registry.getAll();
-
-    if (adapters.length === 0) {
-      console.warn('DatasetService.search: No adapters registered');
+    try {
+      return await this.reader.search(params);
+    } catch (error) {
+      console.error('DatasetService.search failed:', error);
       return [];
     }
-
-    // Fetch from all adapters in parallel
-    const results = await Promise.allSettled(
-      adapters.map((adapter) => adapter.search(params))
-    );
-
-    // Aggregate successful results
-    const datasets: IDataset[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        datasets.push(...result.value);
-      } else {
-        console.error('DatasetService.search: Adapter failed:', result.reason);
-      }
-    }
-
-    return datasets;
   }
 
   /**
@@ -67,31 +45,13 @@ export class DatasetService {
    * @returns Array of found datasets
    */
   async getByIds(ids: AdapterDatasetID[]): Promise<IDataset[]> {
-    if (ids.length === 0) {
+    if (ids.length === 0) return [];
+    try {
+      return await this.reader.getDatasetsByIds(ids);
+    } catch (error) {
+      console.error('DatasetService.getByIds failed:', error);
       return [];
     }
-
-    const adapters = this.registry.getAll();
-    if (adapters.length === 0) {
-      console.warn('DatasetService.getByIds: No adapters registered');
-      return [];
-    }
-
-    // Fetch from all adapters in parallel using IDs as-is
-    const results = await Promise.allSettled(
-      adapters.map((adapter) => adapter.getDatasetsByIds(ids))
-    );
-
-    const datasets: IDataset[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        datasets.push(...result.value);
-      } else {
-        console.error('DatasetService.getByIds: Fetch failed:', result.reason);
-      }
-    }
-
-    return datasets;
   }
 
   /**
@@ -101,16 +61,12 @@ export class DatasetService {
    * @returns The dataset if found, null otherwise
    */
   async getById(id: string): Promise<IDataset | null> {
-    const adapters = this.registry.getAll();
-
-    for (const adapter of adapters) {
-      const results = await adapter.getDatasetsByIds([id as AdapterDatasetID]);
-      if (results.length > 0) {
-        return results[0];
-      }
+    try {
+      return await this.reader.getDatasetById(id);
+    } catch (error) {
+      console.error('DatasetService.getById failed:', error);
+      return null;
     }
-
-    return null;
   }
 
   /**
@@ -119,28 +75,11 @@ export class DatasetService {
    * @returns Aggregated array of all datasets
    */
   async getAll(): Promise<IDataset[]> {
-    const adapters = this.registry.getAll();
-
-    if (adapters.length === 0) {
-      console.warn('DatasetService.getAll: No adapters registered');
+    try {
+      return await this.reader.search({});
+    } catch (error) {
+      console.error('DatasetService.getAll failed:', error);
       return [];
     }
-
-    // Fetch from all adapters in parallel
-    const results = await Promise.allSettled(
-      adapters.map((adapter) => adapter.search({}))
-    );
-
-    // Aggregate successful results
-    const datasets: IDataset[] = [];
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        datasets.push(...result.value);
-      } else {
-        console.error('DatasetService.getAll: Adapter failed:', result.reason);
-      }
-    }
-
-    return datasets;
   }
 }
