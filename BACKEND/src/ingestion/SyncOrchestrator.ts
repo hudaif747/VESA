@@ -6,6 +6,9 @@ import { RelationExtractor, GraphPayload } from './services/RelationExtractor';
 import { GraphWriter } from './services/GraphWriter';
 import { IDataAdapter } from './contracts/IDataAdapter';
 
+// Global flag to disable prefixing logic entirely for testing purposes.
+export const SKIP_PREFIXING_TEST_MODE = true;
+
 export class SyncOrchestrator {
   private validator = new HandshakeValidator();
   private prefixer = new PrefixingService();
@@ -54,6 +57,10 @@ export class SyncOrchestrator {
 
     this.state = { status: 'running', processed: 0, total: limit, current_prefix: prefix };
     this.abortSignal = false;
+
+    if (SKIP_PREFIXING_TEST_MODE) {
+      console.warn(`\x1b[33m[SyncOrchestrator] *** TEST MODE ACTIVE: Prefixing logic will be skipped entirely. ***\x1b[0m`);
+    }
 
     console.log(`\x1b[36m[SyncOrchestrator] Initiating handshake with ${url}...\x1b[0m`);
     const isValid = await this.validator.validate(url);
@@ -109,8 +116,13 @@ export class SyncOrchestrator {
             }
 
             failedRecordId = record.dataset?.id || failedRecordId;
-            const prefixedRecord = this.prefixer.applyPrefix(prefix, record);
-            const graphPayload = this.extractor.extract(prefixedRecord);
+            
+            // Respect the global test flag to conditionally apply or skip prefixing
+            const targetRecord = SKIP_PREFIXING_TEST_MODE 
+              ? record 
+              : this.prefixer.applyPrefix(prefix, record);
+              
+            const graphPayload = this.extractor.extract(targetRecord);
             batchPayloads.push(graphPayload);
 
             this.state.processed++;
