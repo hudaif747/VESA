@@ -1,11 +1,14 @@
 import { Router, Request, Response } from "express";
 import { CollectionType } from "arangojs/collection";
 import { db } from "../database";
+import dotenv from "dotenv";
+
 
 const router = Router();
+dotenv.config();
 
 router.post("/", async (_req: Request, res: Response) => {
-  const dbName = "vesa2db";
+  const dbName = process.env.ARANGO_DB_NAME || "vesa2db";
   const docCollections = ["Dataset", "Author", "Keywords"];
   const edgeCollections = ["HasAuthor", "HasKeyword"];
 
