@@ -10,7 +10,7 @@ export class HandshakeValidator {
       const record: IDataAdapter = Array.isArray(response.data) ? response.data[0] : response.data;
 
       // Basic schema check
-      if (!record || !record.dataset || !record.dataset.id || !record.dataset.title) {
+      if (!record || !record.dataset || !record.dataset._key || !record.dataset.title) {
         console.warn(`\x1b[33m[HandshakeValidator] Schema check failed: Missing required dataset fields.\x1b[0m`);
         return false;
       }

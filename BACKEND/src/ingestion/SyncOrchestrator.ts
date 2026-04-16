@@ -115,7 +115,7 @@ export class SyncOrchestrator {
               break;
             }
 
-            failedRecordId = record.dataset?.id || failedRecordId;
+            failedRecordId = record.dataset?._key || record.dataset?.pangaea_id || failedRecordId;
             
             // Respect the global test flag to conditionally apply or skip prefixing
             const targetRecord = SKIP_PREFIXING_TEST_MODE 

@@ -24,20 +24,33 @@ const MapDataset = (record: any, metadata: any): IDataset => {
   const event = metadata["md:event"]?.[0] || {};
 
   return {
-    id: pangaeaId,
+    _key: pangaeaId,
+    pangaea_id: pangaeaId,
     title: citation["md:title"] || "Untitled",
-    abstract: metadata["md:abstract"] || null,
+    text_abstract: metadata["md:abstract"] || null,
+    publication_date: citation["md:dateTime"] || null,
     uri: `https://doi.org/10.1594/PANGAEA.${pangaeaId}`,
-    spatial: {
-      west_bound_longitude: parseFloat(event["md:longitude"]) || null,
-      east_bound_longitude: parseFloat(event["md:longitude"]) || null,
-      south_bound_latitude: parseFloat(event["md:latitude"]) || null,
-      north_bound_latitude: parseFloat(event["md:latitude"]) || null,
+    extent: {
+      geographic: {
+        west_bound_longitude: parseFloat(event["md:longitude"]) || null,
+        east_bound_longitude: parseFloat(event["md:longitude"]) || null,
+        south_bound_latitude: parseFloat(event["md:latitude"]) || null,
+        north_bound_latitude: parseFloat(event["md:latitude"]) || null,
+        mean_longitude: parseFloat(event["md:longitude"]) || null,
+        mean_latitude: parseFloat(event["md:latitude"]) || null,
+      },
+      temporal: {
+        min_date_time: event["md:dateTime"] || citation["md:dateTime"] || null,
+        max_date_time: event["md:dateTime"] || citation["md:dateTime"] || null,
+      },
+      elevation: {
+        name: "Elevation",
+        unit: "m",
+        min: parseFloat(event["md:elevation"]) || null,
+        max: parseFloat(event["md:elevation"]) || null,
+      },
     },
-    temporal: {
-      min_date_time: event["md:dateTime"] || citation["md:dateTime"] || null,
-      max_date_time: event["md:dateTime"] || citation["md:dateTime"] || null,
-    }
+    api_urls: { openaire: null, openalex: null, eudat: null },
   };
 };
 
@@ -45,10 +58,12 @@ const MapAuthors = (citation: any): IAuthor[] => {
   const authors = citation["md:author"] || [];
   const list = Array.isArray(authors) ? authors : [authors];
   return list.map((a: any) => ({
-    id: slugify(`${a["md:lastName"]}_${a["md:firstName"]}`),
-    firstName: a["md:firstName"] || "",
-    lastName: a["md:lastName"] || "",
-    email: a["md:eMail"] || null,
+    _key: slugify(`${a["md:lastName"]}_${a["md:firstName"]}`),
+    display_name: `${a["md:firstName"] || ""} ${a["md:lastName"] || ""}`.trim(),
+    first_name: a["md:firstName"] || "",
+    last_name: a["md:lastName"] || "",
+    e_mail: a["md:eMail"] || null,
+    uri: a["md:URI"] || null,
     orcid: a["md:orcid"] || null,
   }));
 };
@@ -62,7 +77,8 @@ const MapKeywords = (metadata: any): IKeyword[] => {
     .map((k: any) => k["#text"]?.trim())
     .filter((txt: string) => txt && !noise.test(txt))
     .map((txt: string) => ({
-      id: slugify(txt),
+      _key: slugify(txt),
+      display_name: txt,
       name: txt.toLowerCase(),
     }));
 };
@@ -70,15 +86,29 @@ const MapKeywords = (metadata: any): IKeyword[] => {
 // --- Mock Fixture ---
 const MOCK_FIXTURE: IDataAdapter = {
   dataset: {
-    id: "mock-999999",
+    _key: "mock_999999",
+    pangaea_id: "mock-999999",
     title: "Static Mock Dataset for Handshake Verification",
-    abstract: "This is a deterministic mock used strictly for testing the HandshakeValidator.",
+    text_abstract: "This is a deterministic mock used strictly for testing the HandshakeValidator.",
+    publication_date: null,
     uri: "https://doi.org/10.1594/PANGAEA.mock-999999",
-    spatial: null,
-    temporal: null
+    extent: {
+      geographic: {
+        west_bound_longitude: null, east_bound_longitude: null,
+        south_bound_latitude: null, north_bound_latitude: null,
+        mean_longitude: null, mean_latitude: null
+      },
+      temporal: { min_date_time: null, max_date_time: null },
+      elevation: { name: "Elevation", unit: "m", min: null, max: null }
+    },
+    api_urls: { openaire: null, openalex: null, eudat: null }
   },
-  authors: [{ id: "mock_author", firstName: "Mock", lastName: "Author", email: null, orcid: null }],
-  keywords: [{ id: "mock_keyword", name: "mock keyword" }]
+  authors: [{ 
+    _key: "mock_author", display_name: "Mock Author", first_name: "Mock", last_name: "Author", e_mail: null, uri: null, orcid: null 
+  }],
+  keywords: [{ 
+    _key: "mock_keyword", display_name: "mock keyword", name: "mock keyword" 
+  }]
 };
 
 // --- GET Endpoint for Records ---

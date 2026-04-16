@@ -15,7 +15,8 @@ export class RelationExtractor {
 
   public extract(packet: IDataAdapter): GraphPayload {
     try {
-      const dsKey = this.slugify(packet.dataset.id);
+      const rawId = packet.dataset._key || packet.dataset.pangaea_id || "";
+      const dsKey = this.slugify(rawId);
       
       const datasetNode = {
         _key: dsKey,
@@ -23,13 +24,13 @@ export class RelationExtractor {
       };
 
       const authors = packet.authors.map(a => ({
-        _key: this.slugify(a.id),
-        ...a
+        ...a,
+        _key: this.slugify(a._key || ""),
       }));
 
       const keywords = packet.keywords.map(k => ({
-        _key: this.slugify(k.id),
-        ...k
+        ...k,
+        _key: this.slugify(k._key || ""),
       }));
 
       const edgesHasAuthor = authors.map(a => ({
@@ -50,7 +51,7 @@ export class RelationExtractor {
         edgesHasKeyword
       };
     } catch (error: any) {
-      console.error(`\x1b[31m[RelationExtractor] \u2718 Failed to extract graph payload for packet ID ${packet?.dataset?.id}: ${error.message}\x1b[0m`);
+      console.error(`\x1b[31m[RelationExtractor] \u2718 Failed to extract graph payload for packet ID ${packet?.dataset?._key}: ${error.message}\x1b[0m`);
       throw error;
     }
   }
