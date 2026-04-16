@@ -57,6 +57,13 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
     Replace claims in `adapter-registry-model.md` with ingestion-first flow from `revised-architecture-model.md`.
     Add tests for handshake, batch sync, id-prefixing, edge generation, idempotent upserts (extend `__tests__`).
 
+11. **Implement Standalone PANGAEA Proxy (Sample Adapter API)**
+    Create a reference external Express service mimicking `harvester.ts` that serves JSON records compliant with `IDataAdapter`.
+    * **Isolate parsing:** Move XML/Mapping logic from `harvester.ts` to the new proxy.
+    * **Contract endpoint:** Expose `GET /pangaea/records` to fetch and transform PANGAEA OAI data into `IDataAdapter` arrays.
+    * **Pagination & Mocks:** Support `?token=` for batch loops and a static JSON fixture mode for deterministic validation.
+    * **Integration:** Ensure `HandshakeValidator` and `SyncOrchestrator` succeed against this new standalone URL.
+
 ### Minimal implementation order
 * Contract + handshake endpoint <span style="color:green; font-weight:bold">(Partially Done)</span>
 * Prefixing + relation extractor + graph writer <span style="color:green; font-weight:bold">(Done)</span>

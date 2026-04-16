@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 
 import { connectArango } from "./database";
 import { bootstrapGateway } from "./gateway";
+import { pangaeaProxyRouter } from "./proxy/pangaeaProxy";
+import { getIngestionRouter } from "./ingestion/ingestionRouter";
 
 // IMPORT ROUTES
 import mainRouter from "./routes/getDataById";
@@ -22,6 +24,7 @@ import pangaeaHarvesterRouter from "./routes/pangaeaHarvester";
 dotenv.config();
 
 const app = express();
+app.use(express.json());
 
 const parsePort = (value: string | undefined, fallback = 3000): number => {
   const parsed = Number(value);
@@ -57,6 +60,12 @@ const ROUTES = [
 ] as const;
 
 ROUTES.forEach(([path, router]) => app.use(path, router));
+
+// Mount the standalone PANGAEA proxy to expose the new ingestion contract endpoint
+app.use("/pangaea", pangaeaProxyRouter);
+
+// Mount the Ingestion Domain API for UI Lifecycle (Sync)
+app.use("/sync", getIngestionRouter());
 
 async function startServer() {
   try {
