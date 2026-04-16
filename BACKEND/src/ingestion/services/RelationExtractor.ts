@@ -14,39 +14,44 @@ export class RelationExtractor {
   }
 
   public extract(packet: IDataAdapter): GraphPayload {
-    const dsKey = this.slugify(packet.dataset.id);
-    
-    const datasetNode = {
-      _key: dsKey,
-      ...packet.dataset
-    };
+    try {
+      const dsKey = this.slugify(packet.dataset.id);
+      
+      const datasetNode = {
+        _key: dsKey,
+        ...packet.dataset
+      };
 
-    const authors = packet.authors.map(a => ({
-      _key: this.slugify(a.id),
-      ...a
-    }));
+      const authors = packet.authors.map(a => ({
+        _key: this.slugify(a.id),
+        ...a
+      }));
 
-    const keywords = packet.keywords.map(k => ({
-      _key: this.slugify(k.id),
-      ...k
-    }));
+      const keywords = packet.keywords.map(k => ({
+        _key: this.slugify(k.id),
+        ...k
+      }));
 
-    const edgesHasAuthor = authors.map(a => ({
-      _from: `Dataset/${dsKey}`,
-      _to: `Author/${a._key}`
-    }));
+      const edgesHasAuthor = authors.map(a => ({
+        _from: `Dataset/${dsKey}`,
+        _to: `Author/${a._key}`
+      }));
 
-    const edgesHasKeyword = keywords.map(k => ({
-      _from: `Dataset/${dsKey}`,
-      _to: `Keywords/${k._key}`
-    }));
+      const edgesHasKeyword = keywords.map(k => ({
+        _from: `Dataset/${dsKey}`,
+        _to: `Keywords/${k._key}`
+      }));
 
-    return {
-      dataset: datasetNode,
-      authors,
-      keywords,
-      edgesHasAuthor,
-      edgesHasKeyword
-    };
+      return {
+        dataset: datasetNode,
+        authors,
+        keywords,
+        edgesHasAuthor,
+        edgesHasKeyword
+      };
+    } catch (error: any) {
+      console.error(`\x1b[31m[RelationExtractor] \u2718 Failed to extract graph payload for packet ID ${packet?.dataset?.id}: ${error.message}\x1b[0m`);
+      throw error;
+    }
   }
 }
