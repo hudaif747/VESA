@@ -1,8 +1,6 @@
 import { Request, Response, Router } from "express";
 import {
   getServices,
-  toLegacyDatasets,
-  type LegacyDataset,
   type AdapterDatasetID,
 } from "../gateway";
 import {
@@ -24,8 +22,7 @@ router.post("/persist", async (req: Request, res: Response) => {
 
     const { datasetService } = getServices();
     const datasets = await datasetService.getByIds(commonDatasetIds.flat() as AdapterDatasetID[]);
-    const result: LegacyDataset[] = toLegacyDatasets(datasets);
-    res.status(200).json({ result });
+    res.status(200).json({ result: datasets });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
     res.status(500).json({ message });
@@ -37,8 +34,7 @@ router.post("/", async (req: Request, res: Response) => {
     const datasetIds = normalizeIds(req.body.key);
     const { datasetService } = getServices();
     const datasets = await datasetService.getByIds(datasetIds);
-    const result: LegacyDataset[] = toLegacyDatasets(datasets);
-    res.status(200).json({ result });
+    res.status(200).json({ result: datasets });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
     res.status(500).json({ message });
@@ -49,8 +45,7 @@ router.get("/all", async (_req: Request, res: Response) => {
   try {
     const { datasetService } = getServices();
     const datasets = await datasetService.getAll();
-    const result: LegacyDataset[] = toLegacyDatasets(datasets);
-    res.status(200).json({ result });
+    res.status(200).json({ result: datasets });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal server error";
     res.status(500).json({ message });

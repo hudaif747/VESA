@@ -40,7 +40,8 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
    * Remove/bypass non-essential adapter-registry logic on read path (keep only compatibility wiring if still needed)
    * Treat external sources as ingestion-time concerns only (not runtime read fan-out)
 
-6. **Remove/limit runtime double mapping**
+6. **Remove/limit runtime double mapping** <span style="color:green; font-weight:bold">COMPLETED</span>
+   *(Updated recently: Removed `responseTransformers.ts` and legacy double-mapping layers).*
    You currently map adapter-domain models to legacy response models via `toLegacyDataset`, `toLegacyKeyword`, `toLegacyAuthor` in `responseTransformers.ts`.
    Revised model should minimize this layer (or deprecate it behind v1 endpoints).
 
@@ -71,4 +72,4 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
 * Prefixing + relation extractor + graph writer <span style="color:green; font-weight:bold">(Done)</span>
 * Sync orchestration with status tracking <span style="color:green; font-weight:bold">(Done)</span>
 * Route wiring + init UI integration <span style="color:green; font-weight:bold">(Done)</span>
-* Decommission/reduce legacy transformers and runtime mapping paths *(Remaining)*
+* Decommission/reduce legacy transformers and runtime mapping paths <span style="color:green; font-weight:bold">(Done)</span>

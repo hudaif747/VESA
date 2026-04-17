@@ -1,8 +1,6 @@
 import express, { Request, Response, Router } from "express";
 import {
   getServices,
-  toLegacyKeywords,
-  type LegacyKeyword,
   type AdapterDatasetID,
 } from "../gateway";
 import { IDatasetID } from "../types/types";
@@ -17,7 +15,13 @@ router.post("/", async (req: Request, res: Response) => {
     const { keywordService } = getServices();
     const datasetIds = normalizeIds(req.body.key);
     const keywords = await keywordService.getKeywordsForDatasets(datasetIds);
-    const result: LegacyKeyword[] = toLegacyKeywords(keywords);
+
+    // Map inline to support frontend's legacy `dataset_id` pluralization mismatch
+    const result = keywords.map(k => ({
+      keyword: k.keyword,
+      count: k.count,
+      dataset_id: k.dataset_ids
+    }));
 
     res.status(200).json({ result });
   } catch (err: unknown) {
@@ -30,7 +34,13 @@ router.get("/all", async (_req: Request, res: Response) => {
   try {
     const { keywordService } = getServices();
     const keywords = await keywordService.getAllKeywords();
-    const result: LegacyKeyword[] = toLegacyKeywords(keywords);
+
+    // Map inline to support frontend's legacy `dataset_id` pluralization mismatch
+    const result = keywords.map(k => ({
+      keyword: k.keyword,
+      count: k.count,
+      dataset_id: k.dataset_ids
+    }));
 
     res.status(200).json({ result });
   } catch (err: unknown) {
@@ -40,14 +50,6 @@ router.get("/all", async (_req: Request, res: Response) => {
 });
 
 export default router;
-
-/*
-  keyword {
-    keyword: string;
-    count: number;
-    ^dataset_id: IDatasetID[];
-  }
-*/
 
 /**
  * This file is a route that is used to get the keywords of a dataset by its id.

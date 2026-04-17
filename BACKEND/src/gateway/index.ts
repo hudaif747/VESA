@@ -43,21 +43,6 @@ export type {
   AdapterFeatures,
 } from './adapters/contracts';
 
-
-
-// Response Transformers (legacy format for API responses)
-export {
-  toLegacyDataset,
-  toLegacyDatasets,
-  toLegacyKeyword,
-  toLegacyKeywords,
-  toLegacyAuthor,
-  toLegacyAuthors,
-  type LegacyDataset,
-  type LegacyKeyword,
-  type LegacyAuthor,
-} from './transformers';
-
 import { VesaAdapter } from './adapters';
 
 const gatewayAdapter = new VesaAdapter();
