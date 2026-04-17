@@ -1,10 +1,23 @@
 import { Database } from 'arangojs';
 import { GraphPayload } from './RelationExtractor';
 
+const SKIP_NULL_TEMPORAL = true;
+
+const isValidPayload = (payload: GraphPayload): boolean => {
+  if (!SKIP_NULL_TEMPORAL) return true;
+  const temporal = payload.dataset?.extent?.temporal;
+  if (temporal && temporal.min_date_time === null && temporal.max_date_time === null) {
+    return false;
+  }
+  return true;
+};
+
 export class GraphWriter {
   constructor(private db: Database) {}
 
   public async write(payload: GraphPayload): Promise<void> {
+    if (!isValidPayload(payload)) return;
+
     try {
       const cols = {
         ds: this.db.collection('Dataset'),
@@ -40,7 +53,8 @@ export class GraphWriter {
   }
 
   public async writeBatch(payloads: GraphPayload[]): Promise<void> {
-    if (payloads.length === 0) return;
+    const validPayloads = payloads.filter(isValidPayload);
+    if (validPayloads.length === 0) return;
 
     try {
       const cols = {
@@ -55,11 +69,11 @@ export class GraphWriter {
       const uniqueBy = (arr: any[], key: string) => [...new Map(arr.map(item => [item[key], item])).values()];
       const uniqueEdges = (arr: any[]) => [...new Map(arr.map(item => [`${item._from}-${item._to}`, item])).values()];
 
-      const datasets = payloads.map(p => p.dataset);
-      const authors = uniqueBy(payloads.flatMap(p => p.authors), '_key');
-      const keywords = uniqueBy(payloads.flatMap(p => p.keywords), '_key');
-      const hasAuthEdges = uniqueEdges(payloads.flatMap(p => p.edgesHasAuthor));
-      const hasKwEdges = uniqueEdges(payloads.flatMap(p => p.edgesHasKeyword));
+      const datasets = validPayloads.map(p => p.dataset);
+      const authors = uniqueBy(validPayloads.flatMap(p => p.authors), '_key');
+      const keywords = uniqueBy(validPayloads.flatMap(p => p.keywords), '_key');
+      const hasAuthEdges = uniqueEdges(validPayloads.flatMap(p => p.edgesHasAuthor));
+      const hasKwEdges = uniqueEdges(validPayloads.flatMap(p => p.edgesHasKeyword));
 
       if (datasets.length) await cols.ds.save(datasets, { overwriteMode: "update" });
       if (authors.length) await cols.auth.save(authors, { overwriteMode: "update" });
