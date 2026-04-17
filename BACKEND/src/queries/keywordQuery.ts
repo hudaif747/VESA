@@ -31,6 +31,8 @@ LET wordCloudData = (
                                         :  cleanedKeywordNoSlash                                 
         FILTER REGEX_TEST(cleanedKeywordNoDot, "^[a-zA-Z]")
 
+        FILTER !REGEX_TEST(cleanedKeywordNoDot, "[0-9]")
+
         LET countRelatedIDs = LENGTH(groups[*].edge._from)
         LET relatedIDs = groups[* FILTER NOT LIKE(CURRENT.edge._from, "Publication/%")].edge._from
         SORT countRelatedIDs DESC
