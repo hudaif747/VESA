@@ -17,7 +17,8 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
    Your revised doc says “Universal Data Packet”, but older code centered on `IDataAdapter` (recently renamed to `IVesaReader` to reflect the single local graph reader pivot).
    Add a separate payload contract (e.g., `IDataAdapter`) under `types.ts` or a new ingestion contracts file.
 
-3. **Add ingestion API endpoints for Init UI lifecycle**  *(PENDING: What is left)*
+3. **Add ingestion API endpoints for Init UI lifecycle**  <span style="color:green; font-weight:bold">COMPLETED</span>
+   *(Updated recently: Implemented ingestion endpoints `/sync/validate`, `/sync/start`, `/sync/status`, and `/sync/stop` and wired them up in the API).*
    Current routes are query-centric; add/expand ingestion routes for:
    * `/sync/validate` (1-record handshake)
    * `/sync/start`
@@ -25,7 +26,8 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
    * `/sync/stop`
    You can extend `pangaeaHarvester.ts` and wire in `index.ts`.
 
-4. **Make graph schema ingestion-first** *(PENDING: What is left)*
+4. **Make graph schema ingestion-first** <span style="color:green; font-weight:bold">COMPLETED</span>
+   *(Updated recently: Stabilized naming policy, added unique constraints on IDs, and addressed edge de-duplication).*
    Current DB bootstrap in `initemptydb.ts` creates collections, but you still need:
    * stable naming policy (keep `Dataset`/`Author`/`Keywords` or migrate consistently)
    * unique indexes on normalized IDs
@@ -65,8 +67,8 @@ This is execution plan plots the gap between adapter-registry-model.md (which we
     * **Integration:** Ensure `HandshakeValidator` and `SyncOrchestrator` succeed against this new standalone URL.
 
 ### Minimal implementation order
-* Contract + handshake endpoint <span style="color:green; font-weight:bold">(Partially Done)</span>
+* Contract + handshake endpoint <span style="color:green; font-weight:bold">(Done)</span>
 * Prefixing + relation extractor + graph writer <span style="color:green; font-weight:bold">(Done)</span>
 * Sync orchestration with status tracking <span style="color:green; font-weight:bold">(Done)</span>
-* Route wiring + init UI integration *(Remaining)*
+* Route wiring + init UI integration <span style="color:green; font-weight:bold">(Done)</span>
 * Decommission/reduce legacy transformers and runtime mapping paths *(Remaining)*
