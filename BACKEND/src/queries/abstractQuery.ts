@@ -8,15 +8,6 @@
 import { AQLQuery } from "../types/types";
 
 export const abstractQuery: AQLQuery = `
-    LET DATASET_ID = @keys
-    
-    LET collection_name = SPLIT(DATASET_ID,"/")[0]      // Splitting the key to get the collection name either Dataset or STACCollection
-    
-    LET DATASET = (
-    FOR doc in Dataset
-        FILTER(doc._id == DATASET_ID)
-        RETURN doc.abstract
-    )
-
-    RETURN collection_name == FIRST(DATASET)
+    LET doc = DOCUMENT(@keys)
+    RETURN doc != null ? doc.abstract : null
 `;

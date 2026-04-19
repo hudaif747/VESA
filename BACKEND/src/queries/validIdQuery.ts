@@ -1,34 +1,14 @@
 import { AQLQuery } from "../types/types";
 
 export const isValidIdQuery: AQLQuery = `
-LET id = @key
-
-LET DATASET = (
-    FOR doc in Dataset
-        FILTER(doc._id == id)
-        RETURN true
-    )
-
-
-RETURN (LENGTH(DATASET) > 0 || LENGTH(STAC) > 0)
-
+LET doc = DOCUMENT(@key)
+RETURN doc != null
 `;
 
 export const isValidIdArrayQuery: AQLQuery = `
-LET ids = @keys
-
-LET datasetCount = (
-  FOR id IN ids
-    FOR doc IN Dataset
-      FILTER doc._id == id
-      COLLECT WITH COUNT INTO length
-      RETURN length
-)[0]
-
-
-
-RETURN (datasetCount) == LENGTH(ids) 
-
+LET ids = FLATTEN([@keys])
+LET validDocs = ids[* FILTER DOCUMENT(CURRENT) != null]
+RETURN LENGTH(validDocs) == LENGTH(ids)
 `;
 
 /**

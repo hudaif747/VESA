@@ -19,20 +19,19 @@ import { AQLQuery } from "../types/types";
  */
 
 export const mapFullQuery: AQLQuery = `
-
-
-LET DATASET = (
-    FOR dataset in Dataset
-        FILTER ((dataset.spatial.west == -180 && 
-                dataset.spatial.east == 180  &&
-                dataset.spatial.north == 90   &&
-                dataset.spatial.south == -90 ) || 
-                ((dataset.spatial.north + dataset.spatial.south) / 2 == 0 &&
-                (dataset.spatial.east + dataset.spatial.west) / 2 == 0 ))
-    RETURN dataset._id
-    )
-
-RETURN DATASET
+RETURN (
+    FOR dataset IN Dataset
+        FILTER (
+            (dataset.spatial.west == -180 && 
+             dataset.spatial.east == 180  &&
+             dataset.spatial.north == 90   &&
+             dataset.spatial.south == -90) 
+            || 
+            (dataset.spatial.north + dataset.spatial.south == 0 &&
+             dataset.spatial.east + dataset.spatial.west == 0)
+        )
+        RETURN dataset._id
+)
 `;
 
 /*
@@ -40,13 +39,11 @@ RETURN DATASET
     a null coverage object i.e missing map data
 */
 export const mapNullQuery: AQLQuery = `
-LET DATASET = (
-    FOR dataset in Dataset
-        FILTER (dataset.spatial == null ||
-                dataset.spatial.west == null ||
-                dataset.spatial.east == null)
-    RETURN dataset._id
+RETURN (
+    FOR dataset IN Dataset
+        FILTER dataset.spatial == null ||
+               dataset.spatial.west == null ||
+               dataset.spatial.east == null
+        RETURN dataset._id
 )
-
-RETURN DATASET
 `;

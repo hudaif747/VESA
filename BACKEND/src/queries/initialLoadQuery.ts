@@ -7,25 +7,14 @@
 import { AQLQuery } from "../types/types";
 
 export const initialPageLoadQuery: AQLQuery = `
-    // LET DatasetID = (
-    //     FOR d IN Dataset
-    //         LIMIT 1000
-    //         RETURN d._id
-    //         )
-      
-    
     //Dataset_id_list contains the dataset ids that have a connection with a keyword
-    LET Dataset_id_list = (
+    LET DatasetID = (
         FOR edge IN HasKeyword
-            FILTER(CONTAINS(edge._from,'Dataset/'))
-            RETURN edge._from
-            )
-    LET DatasetID = UNIQUE(Dataset_id_list)
-    
+            FILTER LIKE(edge._from, 'Dataset/%')
+            RETURN DISTINCT edge._from
+    )
 
-    
-
-    FOR doc in DatasetID
+    FOR doc IN DatasetID
         RETURN doc
 `;
 

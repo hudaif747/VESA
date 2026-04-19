@@ -14,16 +14,15 @@ export const timechartQuery: AQLQuery = `
 LET startDate = @start
 LET endDate = @end
 
-LET Dataset_id_list = (
+LET DatasetID = (
     FOR edge IN HasKeyword
-        FILTER CONTAINS(edge._from, 'Dataset/')
-        RETURN edge._from
+        FILTER LIKE(edge._from, 'Dataset/%')
+        RETURN DISTINCT edge._from
 )
-LET DatasetID = UNIQUE(Dataset_id_list)
 
 LET dLists = (
-    FOR d IN Dataset
-        FILTER (d._id IN DatasetID && d.temporal != null)
+    FOR d IN DOCUMENT(DatasetID)
+        FILTER d != null AND d.temporal != null
         LET start_date = d.temporal.start != null ? d.temporal.start : startDate
         LET end_date = d.temporal.end != null ? d.temporal.end : DATE_ADD(start_date, 1, "day")
         FILTER startDate <= end_date AND endDate >= start_date

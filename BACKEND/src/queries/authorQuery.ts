@@ -9,15 +9,12 @@ import { AQLQuery } from "../types/types";
 export const authorQuery: AQLQuery = `
 LET idLists = @keys
 FOR datasetId IN idLists
-  FOR edge IN HasAuthor
-    FILTER edge._from == datasetId
-    FOR author IN Author
-      FILTER edge._to == author._id
-      COLLECT authorName = CONCAT(author.firstName, ' ', author.lastName) INTO groupedDatasets
-      RETURN {
-        author: authorName,
-        datasets: groupedDatasets[*].edge._from
-      }
+  FOR author IN 1..1 OUTBOUND datasetId HasAuthor
+    COLLECT authorName = CONCAT(author.firstName, ' ', author.lastName) INTO groupedDatasets
+    RETURN {
+      author: authorName,
+      datasets: groupedDatasets[*].datasetId
+    }
 `;
 
 /**

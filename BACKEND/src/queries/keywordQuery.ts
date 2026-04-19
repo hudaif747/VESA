@@ -15,35 +15,33 @@ import { AQLQuery } from "../types/types";
 export const keywordQuery: AQLQuery = `
 LET combined = @keys
 LET array = FLATTEN(combined)
+LET validIds = array[* FILTER NOT LIKE(CURRENT, "Publication/%")]
+
 LET wordCloudData = (
-    FOR d in array
-    FOR edge IN HasKeyword
-        FILTER(edge._from == d)
-        FILTER NOT LIKE(edge._from, "Publication/%")
-        COLLECT keywordID = edge._to INTO groups
-        LET keyword = DOCUMENT(keywordID)
-        
-        LET cleanedKeywordtrim = REGEX_REPLACE(keyword.name, "\\\\([^)]*\\\\)", "") 
-        LET cleanedKeyword = TRIM(cleanedKeywordtrim)
-        LET cleanedKeywordNoSlash = REGEX_REPLACE(cleanedKeyword, "/", " ")
-        LET cleanedKeywordNoDot = (REGEX_MATCHES(cleanedKeywordNoSlash , "^(?![^\r\n]*\.[A-Za-z]$).*$") != null) 
-                                        ?  REGEX_REPLACE(cleanedKeywordNoSlash,".$","")  
-                                        :  cleanedKeywordNoSlash                                 
-        FILTER REGEX_TEST(cleanedKeywordNoDot, "^[a-zA-Z]")
+    FOR d in validIds
+        FOR keyword IN 1..1 OUTBOUND d HasKeyword
+            COLLECT keywordID = keyword._id, kName = keyword.name INTO groups
+            
+            LET cleanedKeywordtrim = REGEX_REPLACE(kName, "\\\\([^)]*\\\\)", "") 
+            LET cleanedKeyword = TRIM(cleanedKeywordtrim)
+            LET cleanedKeywordNoSlash = REGEX_REPLACE(cleanedKeyword, "/", " ")
+            LET cleanedKeywordNoDot = (REGEX_MATCHES(cleanedKeywordNoSlash , "^(?![^\r\n]*\.[A-Za-z]$).*$") != null) 
+                                            ?  REGEX_REPLACE(cleanedKeywordNoSlash,".$","")  
+                                            :  cleanedKeywordNoSlash                                 
+            
+            FILTER REGEX_TEST(cleanedKeywordNoDot, "^[a-zA-Z]")
+            FILTER !REGEX_TEST(cleanedKeywordNoDot, "[0-9]$")
 
-        FILTER !REGEX_TEST(cleanedKeywordNoDot, "[0-9]")
-
-        LET countRelatedIDs = LENGTH(groups[*].edge._from)
-        LET relatedIDs = groups[* FILTER NOT LIKE(CURRENT.edge._from, "Publication/%")].edge._from
-        SORT countRelatedIDs DESC
-        RETURN {
-            keyword : cleanedKeywordNoDot,
-            count : countRelatedIDs,
-            dataset_id : relatedIDs
-        })
+            LET relatedIDs = groups[*].d
+            SORT LENGTH(relatedIDs) DESC
+            RETURN {
+                keyword : cleanedKeywordNoDot,
+                count : LENGTH(relatedIDs),
+                dataset_id : relatedIDs
+            }
+)
 
 RETURN wordCloudData
-
 `;
 
 /* 
