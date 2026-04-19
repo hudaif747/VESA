@@ -13,7 +13,7 @@ FOR datasetId IN idLists
     FILTER edge._from == datasetId
     FOR author IN Author
       FILTER edge._to == author._id
-      COLLECT authorName = author.display_name INTO groupedDatasets
+      COLLECT authorName = CONCAT(author.firstName, ' ', author.lastName) INTO groupedDatasets
       RETURN {
         author: authorName,
         datasets: groupedDatasets[*].edge._from

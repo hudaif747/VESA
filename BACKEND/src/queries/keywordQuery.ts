@@ -23,7 +23,7 @@ LET wordCloudData = (
         COLLECT keywordID = edge._to INTO groups
         LET keyword = DOCUMENT(keywordID)
         
-        LET cleanedKeywordtrim = REGEX_REPLACE(keyword.display_name, "\\\\([^)]*\\\\)", "") 
+        LET cleanedKeywordtrim = REGEX_REPLACE(keyword.name, "\\\\([^)]*\\\\)", "") 
         LET cleanedKeyword = TRIM(cleanedKeywordtrim)
         LET cleanedKeywordNoSlash = REGEX_REPLACE(cleanedKeyword, "/", " ")
         LET cleanedKeywordNoDot = (REGEX_MATCHES(cleanedKeywordNoSlash , "^(?![^\r\n]*\.[A-Za-z]$).*$") != null) 

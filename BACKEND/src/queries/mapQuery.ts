@@ -23,12 +23,12 @@ export const mapFullQuery: AQLQuery = `
 
 LET DATASET = (
     FOR dataset in Dataset
-        FILTER ((dataset.extent.geographic.west_bound_longitude == -180 && 
-                dataset.extent.geographic.east_bound_longitude == 180  &&
-                dataset.extent.geographic.north_bound_latitude == 90   &&
-                dataset.extent.geographic.south_bound_latitude == -90 ) || 
-                (dataset.extent.geographic.mean_latitude == 0 &&
-                dataset.extent.geographic.mean_longitude == 0 ))
+        FILTER ((dataset.spatial.west == -180 && 
+                dataset.spatial.east == 180  &&
+                dataset.spatial.north == 90   &&
+                dataset.spatial.south == -90 ) || 
+                ((dataset.spatial.north + dataset.spatial.south) / 2 == 0 &&
+                (dataset.spatial.east + dataset.spatial.west) / 2 == 0 ))
     RETURN dataset._id
     )
 
@@ -42,8 +42,9 @@ RETURN DATASET
 export const mapNullQuery: AQLQuery = `
 LET DATASET = (
     FOR dataset in Dataset
-        FILTER (dataset.extent.geographic.mean_latitude == null ||
-                dataset.extent.geographic.mean_longitude == null )
+        FILTER (dataset.spatial == null ||
+                dataset.spatial.west == null ||
+                dataset.spatial.east == null)
     RETURN dataset._id
 )
 

@@ -23,9 +23,9 @@ LET DatasetID = UNIQUE(Dataset_id_list)
 
 LET dLists = (
     FOR d IN Dataset
-        FILTER (d._id IN DatasetID && d.extent.temporal != null)
-        LET start_date = d.extent.temporal.min_date_time != null ? d.extent.temporal.min_date_time : startDate
-        LET end_date = d.extent.temporal.max_date_time != null ? d.extent.temporal.max_date_time : DATE_ADD(start_date, 1, "day")
+        FILTER (d._id IN DatasetID && d.temporal != null)
+        LET start_date = d.temporal.start != null ? d.temporal.start : startDate
+        LET end_date = d.temporal.end != null ? d.temporal.end : DATE_ADD(start_date, 1, "day")
         FILTER startDate <= end_date AND endDate >= start_date
         RETURN d._id
 )

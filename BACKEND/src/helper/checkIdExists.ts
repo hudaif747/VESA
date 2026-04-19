@@ -9,11 +9,11 @@ export const checkIdExists = async (id: string, database: any) => {
 };
 
 export const checkIdArrayExists = async (ids: string[], database: any) => {
-  const cursor = await database.query(isValidIdQuery, {
+  const cursor = await database.query(isValidIdArrayQuery, {
     keys: ids,
   });
   const result = await cursor.all();
-  return result;
+  return result[0];
 };
 
 /**

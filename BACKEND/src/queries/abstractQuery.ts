@@ -15,9 +15,8 @@ export const abstractQuery: AQLQuery = `
     LET DATASET = (
     FOR doc in Dataset
         FILTER(doc._id == DATASET_ID)
-        RETURN doc.text_abstract
+        RETURN doc.abstract
     )
-
 
     RETURN collection_name == FIRST(DATASET)
 `;
