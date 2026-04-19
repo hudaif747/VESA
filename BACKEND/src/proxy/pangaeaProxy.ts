@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
+import * as fs from 'fs';
 import { XMLParser } from 'fast-xml-parser';
 import { IDataAdapter, IDataset, IAuthor, IKeyword } from '../ingestion/contracts/IDataAdapter';
 
@@ -24,33 +25,22 @@ const MapDataset = (record: any, metadata: any): IDataset => {
   const event = metadata["md:event"]?.[0] || {};
 
   return {
-    _key: pangaeaId,
-    pangaea_id: pangaeaId,
+    id: pangaeaId,
     title: citation["md:title"] || "Untitled",
-    text_abstract: metadata["md:abstract"] || null,
-    publication_date: citation["md:dateTime"] || null,
+    abstract: metadata["md:abstract"] || null,
     uri: `https://doi.org/10.1594/PANGAEA.${pangaeaId}`,
-    extent: {
-      geographic: {
-        west_bound_longitude: parseFloat(event["md:longitude"]) || null,
-        east_bound_longitude: parseFloat(event["md:longitude"]) || null,
-        south_bound_latitude: parseFloat(event["md:latitude"]) || null,
-        north_bound_latitude: parseFloat(event["md:latitude"]) || null,
-        mean_longitude: parseFloat(event["md:longitude"]) || null,
-        mean_latitude: parseFloat(event["md:latitude"]) || null,
-      },
-      temporal: {
-        min_date_time: event["md:dateTime"] || citation["md:dateTime"] || null,
-        max_date_time: event["md:dateTime"] || citation["md:dateTime"] || null,
-      },
-      elevation: {
-        name: "Elevation",
-        unit: "m",
-        min: parseFloat(event["md:elevation"]) || null,
-        max: parseFloat(event["md:elevation"]) || null,
-      },
+    publicationDate: citation["md:dateTime"] || null,
+    spatial: {
+      west: parseFloat(event["md:longitude"]) || null,
+      east: parseFloat(event["md:longitude"]) || null,
+      south: parseFloat(event["md:latitude"]) || null,
+      north: parseFloat(event["md:latitude"]) || null,
     },
-    api_urls: { openaire: null, openalex: null, eudat: null },
+    temporal: {
+      start: event["md:dateTime"] || citation["md:dateTime"] || null,
+      end: event["md:dateTime"] || citation["md:dateTime"] || null,
+    },
+    source: "PANGAEA"
   };
 };
 
@@ -58,13 +48,9 @@ const MapAuthors = (citation: any): IAuthor[] => {
   const authors = citation["md:author"] || [];
   const list = Array.isArray(authors) ? authors : [authors];
   return list.map((a: any) => ({
-    _key: slugify(`${a["md:lastName"]}_${a["md:firstName"]}`),
-    display_name: `${a["md:firstName"] || ""} ${a["md:lastName"] || ""}`.trim(),
-    first_name: a["md:firstName"] || "",
-    last_name: a["md:lastName"] || "",
-    e_mail: a["md:eMail"] || null,
-    uri: a["md:URI"] || null,
-    orcid: a["md:orcid"] || null,
+    id: slugify(`${a["md:lastName"]}_${a["md:firstName"]}`),
+    firstName: a["md:firstName"] || "",
+    lastName: a["md:lastName"] || "",
   }));
 };
 
@@ -77,8 +63,7 @@ const MapKeywords = (metadata: any): IKeyword[] => {
     .map((k: any) => k["#text"]?.trim())
     .filter((txt: string) => txt && !noise.test(txt))
     .map((txt: string) => ({
-      _key: slugify(txt),
-      display_name: txt,
+      id: slugify(txt),
       name: txt.toLowerCase(),
     }));
 };
@@ -86,28 +71,20 @@ const MapKeywords = (metadata: any): IKeyword[] => {
 // --- Mock Fixture ---
 const MOCK_FIXTURE: IDataAdapter = {
   dataset: {
-    _key: "mock_999999",
-    pangaea_id: "mock-999999",
+    id: "mock_999999",
     title: "Static Mock Dataset for Handshake Verification",
-    text_abstract: "This is a deterministic mock used strictly for testing the HandshakeValidator.",
-    publication_date: null,
+    abstract: "This is a deterministic mock used strictly for testing the HandshakeValidator.",
     uri: "https://doi.org/10.1594/PANGAEA.mock-999999",
-    extent: {
-      geographic: {
-        west_bound_longitude: null, east_bound_longitude: null,
-        south_bound_latitude: null, north_bound_latitude: null,
-        mean_longitude: null, mean_latitude: null
-      },
-      temporal: { min_date_time: null, max_date_time: null },
-      elevation: { name: "Elevation", unit: "m", min: null, max: null }
-    },
-    api_urls: { openaire: null, openalex: null, eudat: null }
+    publicationDate: null,
+    spatial: { west: null, east: null, south: null, north: null },
+    temporal: { start: null, end: null },
+    source: "PANGAEA"
   },
   authors: [{ 
-    _key: "mock_author", display_name: "Mock Author", first_name: "Mock", last_name: "Author", e_mail: null, uri: null, orcid: null 
+    id: "mock_author", firstName: "Mock", lastName: "Author" 
   }],
   keywords: [{ 
-    _key: "mock_keyword", display_name: "mock keyword", name: "mock keyword" 
+    id: "mock_keyword", name: "mock keyword" 
   }]
 };
 

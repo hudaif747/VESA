@@ -5,8 +5,8 @@ const SKIP_NULL_TEMPORAL = true;
 
 const isValidPayload = (payload: GraphPayload): boolean => {
   if (!SKIP_NULL_TEMPORAL) return true;
-  const temporal = payload.dataset?.extent?.temporal;
-  if (temporal && temporal.min_date_time === null && temporal.max_date_time === null) {
+  const temporal = payload.dataset?.temporal;
+  if (temporal && temporal.start === null && temporal.end === null) {
     return false;
   }
   return true;

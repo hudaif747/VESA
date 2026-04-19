@@ -13,11 +13,10 @@ export class PrefixingService {
       return {
         dataset: {
           ...packet.dataset,
-          _key: apply(packet.dataset._key || ""),
-          pangaea_id: apply(packet.dataset.pangaea_id || ""),
+          id: apply(packet.dataset.id || ""),
         },
-        authors: packet.authors.map(a => ({ ...a, _key: apply(a._key || "") })),
-        keywords: packet.keywords.map(k => ({ ...k, _key: apply(k._key || "") }))
+        authors: packet.authors.map(a => ({ ...a, id: apply(a.id || "") })),
+        keywords: packet.keywords.map(k => ({ ...k, id: apply(k.id || "") }))
       };
     } catch (error: any) {
       console.error(`\x1b[31m[PrefixingService] \u2718 Error applying prefix '${prefix}': ${error.message}\x1b[0m`);

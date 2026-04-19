@@ -1,11 +1,11 @@
-import { IDataAdapter } from '../contracts/IDataAdapter';
+import { IDataAdapter, IDataset, IAuthor, IKeyword } from '../contracts/IDataAdapter';
 
 export interface GraphPayload {
-  dataset: any;
-  authors: any[];
-  keywords: any[];
-  edgesHasAuthor: any[];
-  edgesHasKeyword: any[];
+  dataset: IDataset & { _key: string };
+  authors: (IAuthor & { _key: string })[];
+  keywords: (IKeyword & { _key: string })[];
+  edgesHasAuthor: { _from: string; _to: string }[];
+  edgesHasKeyword: { _from: string; _to: string }[];
 }
 
 export class RelationExtractor {
@@ -15,22 +15,22 @@ export class RelationExtractor {
 
   public extract(packet: IDataAdapter): GraphPayload {
     try {
-      const rawId = packet.dataset._key || packet.dataset.pangaea_id || "";
+      const rawId = packet.dataset.id || "";
       const dsKey = this.slugify(rawId);
       
-      const datasetNode = {
+      const datasetNode: IDataset & { _key: string } = {
         _key: dsKey,
         ...packet.dataset
       };
 
       const authors = packet.authors.map(a => ({
         ...a,
-        _key: this.slugify(a._key || ""),
+        _key: this.slugify(a.id || ""),
       }));
 
       const keywords = packet.keywords.map(k => ({
         ...k,
-        _key: this.slugify(k._key || ""),
+        _key: this.slugify(k.id || ""),
       }));
 
       const edgesHasAuthor = authors.map(a => ({
@@ -51,7 +51,7 @@ export class RelationExtractor {
         edgesHasKeyword
       };
     } catch (error: any) {
-      console.error(`\x1b[31m[RelationExtractor] \u2718 Failed to extract graph payload for packet ID ${packet?.dataset?._key}: ${error.message}\x1b[0m`);
+      console.error(`\x1b[31m[RelationExtractor] \u2718 Failed to extract graph payload for packet ID ${packet?.dataset?.id}: ${error.message}\x1b[0m`);
       throw error;
     }
   }
