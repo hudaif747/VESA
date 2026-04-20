@@ -216,6 +216,9 @@ export interface ISyncValidateRequest {
 
 export interface ISyncValidateResponse {
   valid: boolean;
+  reason?: string;
+  message?: string;
+  originalStatus?: number;
 }
 
 export interface ISyncStartRequest {

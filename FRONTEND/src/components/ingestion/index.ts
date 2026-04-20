@@ -1,2 +1,3 @@
 export { default as HandshakeForm } from './HandshakeForm';
-export {};
+export { default as SyncControl } from './SyncControl';
+export { default as IngestionPage } from './IngestionPage';

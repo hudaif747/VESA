@@ -8,7 +8,7 @@ import Theme from "./utils/Theme";
 import "./App.scss";
 import Footer from "./components/Footer";
 import AppBar from "./components/AppBar";
-import { HandshakeForm } from "./components/ingestion";
+import { IngestionPage } from "./components/ingestion";
 
 /**
  * This is the root element of the application. The layout is made up of three sections: The Appbar, the search box and the Main content.
@@ -24,7 +24,7 @@ function App(): JSX.Element {
             <AppBar />
             <Routes>
               <Route path="/" element={<MainContent />} />
-              <Route path="/init" element={<HandshakeForm onValidated={(url) => console.log(url)} />} />
+              <Route path="/init" element={<IngestionPage />} />
             </Routes>
             <Footer />
           </Stack>
