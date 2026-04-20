@@ -16,31 +16,38 @@ const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 	const progress = (status?.processed || 0) / (status?.total || 1) * 100;
 
 	return (
-		<Paper variant="outlined" sx={{ p: 4, borderRadius: 2, bgcolor: theme.palette.background.paper }}>
+		<Box sx={{ mt: 1 }}>
 			<Stack spacing={3}>
-				<Typography variant="h2">2. Data Import</Typography>
-				<Typography variant="body1">
-					Connected to <b>{config.url}</b>. Ready to import <b>{config.limit}</b> records biosocially.
-				</Typography>
+				<Box>
+					<Typography variant="h6" gutterBottom>Step 2: Data Import</Typography>
+					<Typography variant="body2" color="text.secondary">
+						Connected to <b>{config.url}</b>. Ready to process <b>{config.limit}</b> records for the dataset <b>{config.prefix}</b>.
+					</Typography>
+				</Box>
+				
 				{isRunning ? (
-					<Box sx={{ px: 2 }}>
-						<Typography variant="h3" color="primary" sx={{ mb: 2 }}>
-							Import Progress: {Math.round(progress)}%
-						</Typography>
+					<Stack spacing={1}>
+						<Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+							<Typography variant="body2" fontWeight="medium">Importing Records...</Typography>
+							<Typography variant="body2" color="primary">{Math.round(progress)}%</Typography>
+						</Box>
 						<LinearProgress
 							variant="determinate"
 							value={progress}
 							sx={{
-								height: 10,
-								borderRadius: 5,
-								backgroundColor: theme.palette.divider,
+								height: 8,
+								borderRadius: 4,
+								backgroundColor: theme.palette.grey[200],
 							}}
 						/>
-					</Box>
+						<Typography variant="caption" color="text.secondary">
+							Processed {status?.processed} of {status?.total} items.
+						</Typography>
+					</Stack>
 				) : (
 					<Button
 						variant="contained"
-						color="secondary"
+						color="primary"
 						startIcon={<PlayArrowIcon />}
 						size="large"
 						onClick={() =>
@@ -49,21 +56,21 @@ const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 						disabled={isStarting}
 						sx={{
 							py: 1.5,
-							alignSelf: 'center',
-							px: 6,
-							boxShadow: theme.shadows[2],
+							alignSelf: 'flex-start',
+							minWidth: 180,
+							textTransform: 'none'
 						}}
 					>
 						{isStarting ? 'Initializing...' : 'Start Import'}
 					</Button>
 				)}
 				{error && (
-					<Alert severity="error" sx={{ mt: theme.spacing(2) }}>
-						Synchronization failed to start.
+					<Alert severity="error" variant="outlined" sx={{ borderRadius: 1 }}>
+						Synchronization failed to start. Please check terminal logs.
 					</Alert>
 				)}
 			</Stack>
-		</Paper>
+		</Box>
 	);
 };
 

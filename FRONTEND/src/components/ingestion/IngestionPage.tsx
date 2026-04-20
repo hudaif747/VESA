@@ -28,43 +28,42 @@ const IngestionPage: React.FC = () => {
 	}, [isComplete, config, status, isResetting]);
 
 	return (
-		<Container maxWidth="md" sx={{ py: 8 }}>
+		<Container maxWidth="md" sx={{ py: theme.spacing(6) }}>
 			<Paper 
+				elevation={0}
 				variant="outlined" 
 				sx={{ 
-					p: 5, 
-					borderRadius: 3, 
+					p: theme.spacing(4), 
+					borderRadius: 2, 
 					bgcolor: theme.palette.background.paper,
 					borderColor: theme.palette.divider 
 				}}
 			>
-				<Stack spacing={5}>
-					<Box sx={{ textAlign: 'center' }}>
-						<Typography variant="h1" color="primary">Data Ingestion</Typography>
-						<Typography variant="body1" color="text.secondary">Follow the steps to populate your environment.</Typography>
+				<Stack spacing={4}>
+					<Box>
+						<Typography variant="h4" gutterBottom>Data Ingestion</Typography>
+						<Typography variant="body2" color="text.secondary">Follow the automated steps to populate your visualization environment.</Typography>
 					</Box>
 
-					<Stepper activeStep={activeStep} alternativeLabel>
+					<Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
 						{steps.map((label) => (
 							<Step key={label}>
-								<StepLabel StepIconProps={{ sx: { '&.Mui-active': { color: theme.palette.primary.main } } }}>
-									{label}
-								</StepLabel>
+								<StepLabel>{label}</StepLabel>
 							</Step>
 						))}
 					</Stepper>
 
-					<Box sx={{ minHeight: 250, display: 'flex', flexDirection: 'column', justifyContent: 'center', mt: theme.spacing(2) }}>
+					<Box sx={{ minHeight: 300, display: 'flex', flexDirection: 'column' }}>
 						{activeStep === 0 && <HandshakeForm onValidated={(c) => { setConfig(c); setIsResetting(false); }} />}
 						{activeStep === 1 && <SyncControl status={status} config={config || { url: '', prefix: status?.current_prefix || '', limit: status?.total || 0 }} />}
 						{activeStep === 2 && (
-							<Stack spacing={4} alignItems="center">
-								<Alert severity="success" variant="filled" sx={{ width: '100%' }}>
+							<Stack spacing={3} alignItems="flex-start" sx={{ mt: 2 }}>
+								<Alert severity="success" sx={{ width: '100%', borderRadius: 1 }}>
 									Successfully imported <b>{status?.processed}</b> records into <b>{status?.current_prefix}</b>.
 								</Alert>
 								<Stack direction="row" spacing={2}>
-									<Button variant="contained" color="success" size="large" startIcon={<DashboardIcon />} onClick={() => navigate('/')}>View Dashboard</Button>
-									<Button variant="outlined" startIcon={<ReplayIcon />} onClick={() => { setConfig(null); setIsResetting(true); }}>New Import</Button>
+									<Button variant="contained" size="medium" startIcon={<DashboardIcon />} onClick={() => navigate('/')} sx={{ textTransform: 'none' }}>View Dashboard</Button>
+									<Button variant="outlined" size="medium" startIcon={<ReplayIcon />} onClick={() => { setConfig(null); setIsResetting(true); }} sx={{ textTransform: 'none' }}>New Import</Button>
 								</Stack>
 							</Stack>
 						)}
