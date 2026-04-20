@@ -19,8 +19,16 @@ export const getIngestionRouter = () => {
         return;
       }
       
-      const isValid = await validator.validate(target_url);
-      res.json({ valid: isValid });
+      const result = await validator.validate(target_url);
+      if (!result.valid) {
+        let status = 400;
+        if (result.reason === 'invalid_schema') status = 422;
+        else if (result.reason === 'source_offline' || result.reason === 'unreachable') status = 502;
+        
+        res.status(status).json(result);
+        return;
+      }
+      res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

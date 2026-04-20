@@ -63,12 +63,12 @@ export class SyncOrchestrator {
     }
 
     console.log(`\x1b[36m[SyncOrchestrator] Initiating handshake with ${url}...\x1b[0m`);
-    const isValid = await this.validator.validate(url);
+    const validationResult = await this.validator.validate(url);
     
-    if (!isValid) {
+    if (!validationResult.valid) {
       this.state.status = 'failed';
-      console.error(`\x1b[31m[SyncOrchestrator] Handshake failed. Source does not comply with IDataAdapter contract.\x1b[0m`);
-      throw new Error(`[SyncOrchestrator] Handshake failed.`);
+      console.error(`\x1b[31m[SyncOrchestrator] Handshake failed: ${validationResult.message}\x1b[0m`);
+      throw new Error(`[SyncOrchestrator] Handshake failed: ${validationResult.reason}`);
     }
 
     console.log(`\x1b[32m[SyncOrchestrator] Handshake successful. Beginning sync up to ${limit} records.\x1b[0m`);
