@@ -202,3 +202,35 @@ export interface IPointHoverHandler {
 export interface IContainerProps {
   // height: string;
 }
+
+export interface ISyncState {
+  status: "running" | "idle" | "failed";
+  processed: number;
+  total: number;
+  current_prefix: string;
+}
+
+export interface ISyncValidateRequest {
+  target_url: string;
+}
+
+export interface ISyncValidateResponse {
+  valid: boolean;
+}
+
+export interface ISyncStartRequest {
+  target_url: string;
+  dataset_id: string;
+  batch_size?: number;
+  total_limit?: number;
+}
+
+export interface ISyncStartResponse {
+  message: string;
+  target_url: string;
+  dataset_id: string;
+}
+
+export interface ISyncStopResponse {
+  message: string;
+}

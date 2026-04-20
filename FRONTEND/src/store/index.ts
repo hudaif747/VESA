@@ -8,6 +8,7 @@ import { dataApi } from "./services/dataApi";
 import { miscApi } from "./services/miscApi";
 import { testDataApi } from "./services/testDataApi";
 import { wordCloudApi } from "./services/wordCloudApi";
+import { syncApi } from "./services/syncApi";
 
 const rootReducer = combineReducers({
   selectedKeyword: SelectedKeywordReducer,
@@ -18,6 +19,7 @@ const rootReducer = combineReducers({
   [miscApi.reducerPath]: miscApi.reducer,
   [wordCloudApi.reducerPath]: wordCloudApi.reducer,
   [testDataApi.reducerPath]: testDataApi.reducer,
+  [syncApi.reducerPath]: syncApi.reducer,
 });
 
 // /** Listeners for chart filters */
@@ -37,7 +39,8 @@ export const Store = configureStore({
     getDefaultMiddleware()
       .concat(
         dataApi.middleware,
-        miscApi.middleware
+        miscApi.middleware,
+        syncApi.middleware
         // logger,
       )
       .prepend(listenerMiddleware.middleware),
