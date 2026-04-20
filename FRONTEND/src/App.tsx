@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@emotion/react";
 import { CssBaseline, Stack } from "@mui/material";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainContent from "./components/MainContent";
 import { Provider } from "react-redux";
 import { Store } from "./store";
@@ -7,6 +8,7 @@ import Theme from "./utils/Theme";
 import "./App.scss";
 import Footer from "./components/Footer";
 import AppBar from "./components/AppBar";
+import { HandshakeForm } from "./components/ingestion";
 
 /**
  * This is the root element of the application. The layout is made up of three sections: The Appbar, the search box and the Main content.
@@ -17,11 +19,16 @@ function App(): JSX.Element {
     <Provider store={Store}>
       <ThemeProvider theme={Theme}>
         <CssBaseline />
-        <Stack id="app">
-          <AppBar />
-          <MainContent />
-          <Footer />
-        </Stack>
+        <BrowserRouter>
+          <Stack id="app">
+            <AppBar />
+            <Routes>
+              <Route path="/" element={<MainContent />} />
+              <Route path="/init" element={<HandshakeForm onValidated={(url) => console.log(url)} />} />
+            </Routes>
+            <Footer />
+          </Stack>
+        </BrowserRouter>
       </ThemeProvider>
     </Provider>
   );
