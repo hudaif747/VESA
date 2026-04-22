@@ -51,7 +51,17 @@ const IngestionPage: React.FC = () => {
 	}, [isSuccess, syncStatus, activeStep, ignoredJobId]);
 
 	return (
-		<Container maxWidth="md" sx={{ py: theme.spacing(6) }}>
+		<Container
+			maxWidth="md"
+			sx={{
+				py: theme.spacing(6),
+				minHeight: "100%",
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				width: "100%",
+			}}
+		>
 			<Paper 
 				elevation={0}
 				variant="outlined" 

@@ -23,7 +23,8 @@ const AppBar = (): JSX.Element => {
       sx={{
         display: "flex",
         alignItems: "center",
-        height: 56,
+        minHeight: 56,
+        flexShrink: 0,
         backgroundColor: theme.palette.background.default,
         borderBottom: `1px solid ${theme.palette.divider}`,
         px: 4,

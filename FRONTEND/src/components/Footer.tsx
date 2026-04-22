@@ -12,7 +12,8 @@ function Footer(): JSX.Element {
       sx={{
         display: "flex",
         alignItems: "center",
-        height: footerHeight,
+        minHeight: footerHeight,
+        flexShrink: 0,
         backgroundColor: theme.palette.background.paper,
         paddingX: theme.spacing(4),
         gap: theme.spacing(4),
@@ -22,7 +23,7 @@ function Footer(): JSX.Element {
       <Typography variant="body2">&copy;&nbsp;NFDI4Earth</Typography>
       <Box
         sx={{
-          lineHeight:0
+          lineHeight: 0,
         }}
       >
         <a

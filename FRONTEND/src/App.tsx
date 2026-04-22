@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@emotion/react";
-import { CssBaseline, Stack } from "@mui/material";
+import { Box, CssBaseline, Stack } from "@mui/material";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainContent from "./components/MainContent";
 import { Provider } from "react-redux";
@@ -20,12 +20,20 @@ function App(): JSX.Element {
       <ThemeProvider theme={Theme}>
         <CssBaseline />
         <BrowserRouter>
-          <Stack id="app">
+          <Stack id="app" sx={{ minHeight: "100vh", width: "100%" }}>
             <AppBar />
-            <Routes>
-              <Route path="/" element={<MainContent />} />
-              <Route path="/setup" element={<IngestionPage />} />
-            </Routes>
+            <Box
+              component="main"
+              sx={{
+                flex: 1,
+                width: "100%",
+              }}
+            >
+              <Routes>
+                <Route path="/" element={<MainContent />} />
+                <Route path="/setup" element={<IngestionPage />} />
+              </Routes>
+            </Box>
             <Footer />
           </Stack>
         </BrowserRouter>
