@@ -4,9 +4,10 @@ import { useValidateUrlMutation } from '../../store/services/syncApi';
 
 interface HandshakeFormProps {
   onValidated: (config: { url: string; prefix: string; limit: number; overwrite?: boolean }) => void;
+  isSystemBusy?: boolean;
 }
 
-const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
+const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy }) => {
   const theme = useTheme();
   const [url, setUrl] = useState('');
   const [prefix, setPrefix] = useState('');
@@ -29,16 +30,23 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
 
   return (
     <Stack spacing={3} sx={{ mt: theme.spacing(1) }}>
-      <Typography variant="body2" color="text.secondary">
-        Verify the research repository compatibility to begin the synchronization process.
-      </Typography>
+      {isSystemBusy ? (
+        <Alert severity="info" variant="outlined" sx={{ borderRadius: 1 }}>
+          <AlertTitle sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>System Busy</AlertTitle>
+          An import is currently in progress. Please wait for completion or stop the current job.
+        </Alert>
+      ) : (
+        <Typography variant="body2" color="text.secondary">
+          Verify the research repository compatibility to begin the synchronization process.
+        </Typography>
+      )}
       <TextField 
         fullWidth 
         label="API Endpoint URL" 
         variant="outlined"
         value={url} 
         onChange={(e) => setUrl(e.target.value)} 
-        disabled={isLoading} 
+        disabled={isLoading || isSystemBusy} 
       />
       <Box sx={{ display: 'flex', gap: theme.spacing(2) }}>
         <TextField 
@@ -48,7 +56,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
           value={prefix} 
           onChange={(e) => setPrefix(e.target.value)} 
           placeholder="e.g. pangaea:" 
-          disabled={isLoading} 
+          disabled={isLoading || isSystemBusy} 
         />
         <TextField 
           type="number" 
@@ -57,7 +65,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
           value={limit} 
           onChange={(e) => setLimit(Number(e.target.value))} 
           sx={{ width: 140 }} 
-          disabled={isLoading} 
+          disabled={isLoading || isSystemBusy} 
         />
       </Box>
 
@@ -98,7 +106,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
       <Button 
         variant="contained" 
         onClick={handleValidate} 
-        disabled={isLoading || !url || !prefix || (isConflict && !overwrite)} 
+        disabled={isLoading || isSystemBusy || !url || !prefix || (isConflict && !overwrite)} 
         size="large" 
         sx={{ 
           py: 1.5, 

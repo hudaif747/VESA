@@ -54,20 +54,15 @@ export const getIngestionRouter = () => {
         return;
       }
 
-      // Start the sync process in the background
-      orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100, overwrite)
-        .catch((err) => console.error(`[Ingestion API] Background sync failed:`, err));
+      // Start the sync process and await the Job ID
+      const jobId = await orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100, overwrite);
 
-      // Small delay to ensure the log document gets created and job_id is populated
-      setTimeout(() => {
-        const status = orchestrator.getStatus();
-        res.status(202).json({ 
-          message: 'Sync started.', 
-          target_url, 
-          dataset_id,
-          job_id: status.job_id
-        });
-      }, 50);
+      res.status(202).json({ 
+        message: 'Sync started.', 
+        target_url, 
+        dataset_id,
+        job_id: jobId
+      });
     } catch (error: any) {
       console.error("[Ingestion API] Start error:", error);
       res.status(500).json({ error: "An unexpected error occurred while starting the import." });
@@ -75,8 +70,16 @@ export const getIngestionRouter = () => {
   });
 
   // 3. GET /sync/status
-  router.get('/status', (req: Request, res: Response) => {
-    res.json(orchestrator.getStatus());
+  router.get('/status', async (req: Request, res: Response) => {
+    const currentStatus = orchestrator.getStatus();
+    if (currentStatus.status === 'running') {
+      res.json(currentStatus);
+      return;
+    }
+    
+    // Fallback to database if idle
+    const lastJobStatus = await orchestrator.getLastJobStatus();
+    res.json(lastJobStatus);
   });
 
   // 4. POST /sync/stop

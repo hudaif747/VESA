@@ -33,6 +33,30 @@ export class SyncOrchestrator {
     return this.state;
   }
 
+  public async getLastJobStatus(): Promise<any> {
+    try {
+      const cursor = await this.db.query(`
+        FOR log IN SyncLogs
+        SORT log.start_time DESC
+        LIMIT 1
+        RETURN log
+      `);
+      if (cursor.hasNext) {
+        const log = await cursor.next();
+        return {
+          status: log.status,
+          processed: log.count_success,
+          total: log.count_success + log.count_failure, // Approximation if original total isn't stored
+          current_prefix: log.prefix,
+          job_id: log._key
+        };
+      }
+    } catch (error) {
+      console.error("[SyncOrchestrator] Error fetching last job status:", error);
+    }
+    return this.state;
+  }
+
   public async checkDatasetExists(prefix: string): Promise<boolean> {
     const cursor = await this.db.query(
       `FOR log IN SyncLogs FILTER log.prefix == @prefix LIMIT 1 RETURN log`,
@@ -60,7 +84,7 @@ export class SyncOrchestrator {
     }
   }
 
-  public async sync(url: string, prefix: string, limit: number = 1000, batchSize: number = 100, overwrite: boolean = false): Promise<void> {
+  public async sync(url: string, prefix: string, limit: number = 1000, batchSize: number = 100, overwrite: boolean = false): Promise<string> {
     if (this.state.status === 'running') {
       throw new Error(`[SyncOrchestrator] A sync is already running.`);
     }
@@ -88,6 +112,15 @@ export class SyncOrchestrator {
     this.state = { status: 'running', processed: 0, total: limit, current_prefix: prefix, job_id: jobId };
     this.abortSignal = false;
 
+    // Kick off the background process logic without awaiting it so we can return the Job ID immediately
+    this._runSyncBackground(jobId, url, prefix, limit, batchSize, syncLogsCol).catch((err) => {
+      console.error(`[SyncOrchestrator] Background job critically failed:`, err);
+    });
+
+    return jobId;
+  }
+
+  private async _runSyncBackground(jobId: string, url: string, prefix: string, limit: number, batchSize: number, syncLogsCol: any): Promise<void> {
     if (SKIP_PREFIXING_TEST_MODE) {
       console.warn(`\x1b[33m[SyncOrchestrator] *** TEST MODE ACTIVE: Prefixing logic will be skipped entirely. ***\x1b[0m`);
     }

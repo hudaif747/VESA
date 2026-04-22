@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Button, Typography, LinearProgress, Alert, Stack, Paper, useTheme } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { useStartSyncMutation } from '../../store/services/syncApi';
+import StopIcon from '@mui/icons-material/Stop';
+import { useStartSyncMutation, useStopSyncMutation } from '../../store/services/syncApi';
 
 interface SyncControlProps {
 	config: { url: string; prefix: string; limit: number; overwrite?: boolean };
@@ -11,9 +12,13 @@ interface SyncControlProps {
 const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 	const theme = useTheme();
 	const [startSync, { isLoading: isStarting, error }] = useStartSyncMutation();
+	const [stopSync, { isLoading: isStopping }] = useStopSyncMutation();
 
+	// Automatically show progress if a sync is already running globally
 	const isRunning = status?.status === 'running';
-	const progress = (status?.processed || 0) / (status?.total || 1) * 100;
+	const totalRecords = status?.total || config.limit || 1;
+	const processedRecords = status?.processed || 0;
+	const progress = (processedRecords / totalRecords) * 100;
 
 	return (
 		<Box sx={{ mt: 1 }}>
@@ -41,8 +46,23 @@ const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 							}}
 						/>
 						<Typography variant="caption" color="text.secondary">
-							Processed {status?.processed} of {status?.total} items.
+							Processed {processedRecords} of {totalRecords} items.
 						</Typography>
+						<Button
+							variant="outlined"
+							color="error"
+							startIcon={<StopIcon />}
+							size="small"
+							onClick={() => stopSync()}
+							disabled={isStopping}
+							sx={{
+								mt: 2,
+								alignSelf: 'flex-start',
+								textTransform: 'none'
+							}}
+						>
+							{isStopping ? 'Stopping...' : 'Stop Import'}
+						</Button>
 					</Stack>
 				) : (
 					<Button
