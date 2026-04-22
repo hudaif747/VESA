@@ -45,7 +45,7 @@ const IngestionPage: React.FC = () => {
 				}
 				setErrorMsg(`Synchronization stopped. Processed ${processed} of ${total} records. Please start a New Import.`);
 			} else if (status === 'failed') {
-				setErrorMsg(error_message || 'The synchronization process failed.');
+				setErrorMsg(error_message || 'The previous synchronization process failed.');
 			}
 		}
 	}, [isSuccess, syncStatus, activeStep, ignoredJobId]);

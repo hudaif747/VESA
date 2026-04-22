@@ -24,7 +24,7 @@ function App(): JSX.Element {
             <AppBar />
             <Routes>
               <Route path="/" element={<MainContent />} />
-              <Route path="/init" element={<IngestionPage />} />
+              <Route path="/setup" element={<IngestionPage />} />
             </Routes>
             <Footer />
           </Stack>
