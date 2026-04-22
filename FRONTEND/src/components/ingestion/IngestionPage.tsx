@@ -1,31 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Container, Stack, Typography, Box, Paper, Stepper, Step, StepLabel, Button, Alert, useTheme } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReplayIcon from '@mui/icons-material/Replay';
 import { useNavigate } from 'react-router-dom';
 import HandshakeForm from './HandshakeForm';
 import SyncControl from './SyncControl';
-import { useGetSyncStatusQuery } from '../../store/services/syncApi';
 
 const steps = ['Connect', 'Import', 'Analyze'];
 
 const IngestionPage: React.FC = () => {
 	const theme = useTheme();
 	const navigate = useNavigate();
-	const [config, setConfig] = useState<{ url: string; prefix: string; limit: number } | null>(null);
-	const [isResetting, setIsResetting] = useState(false);
-
-	const { data: status } = useGetSyncStatusQuery(undefined, { 
-		pollingInterval: 2000,
-	});
-
-	const isComplete = status?.status === 'idle' && status.processed > 0 && status.processed >= (status.total || 0);
-
-	const activeStep = useMemo(() => {
-		if (isComplete && !isResetting) return 2;
-		if (config || status?.status === 'running') return 1;
-		return 0;
-	}, [isComplete, config, status, isResetting]);
+	const [config, setConfig] = useState<{ url: string; prefix: string; limit: number; overwrite?: boolean } | null>(null);
+	const [activeStep, setActiveStep] = useState(0);
 
 	return (
 		<Container maxWidth="md" sx={{ py: theme.spacing(6) }}>
@@ -54,16 +41,29 @@ const IngestionPage: React.FC = () => {
 					</Stepper>
 
 					<Box sx={{ minHeight: 300, display: 'flex', flexDirection: 'column' }}>
-						{activeStep === 0 && <HandshakeForm onValidated={(c) => { setConfig(c); setIsResetting(false); }} />}
-						{activeStep === 1 && <SyncControl status={status} config={config || { url: '', prefix: status?.current_prefix || '', limit: status?.total || 0 }} />}
+						{activeStep === 0 && (
+							<HandshakeForm onValidated={(c) => { setConfig(c); setActiveStep(1); }} />
+						)}
+						{activeStep === 1 && (
+							<Box sx={{ width: '100%' }}>
+								<SyncControl status={{}} config={config || { url: '', prefix: '', limit: 0 }} />
+								<Button 
+									sx={{ mt: 3, alignSelf: 'flex-start', textTransform: 'none' }} 
+									variant="text" 
+									onClick={() => setActiveStep(2)}
+								>
+									Skip to Dashboard Setup &rarr;
+								</Button>
+							</Box>
+						)}
 						{activeStep === 2 && (
 							<Stack spacing={3} alignItems="flex-start" sx={{ mt: 2 }}>
 								<Alert severity="success" sx={{ width: '100%', borderRadius: 1 }}>
-									Successfully imported <b>{status?.processed}</b> records into <b>{status?.current_prefix}</b>.
+									Successfully initiated import sequence for <b>{config?.prefix}</b>.
 								</Alert>
 								<Stack direction="row" spacing={2}>
 									<Button variant="contained" size="medium" startIcon={<DashboardIcon />} onClick={() => navigate('/')} sx={{ textTransform: 'none' }}>View Dashboard</Button>
-									<Button variant="outlined" size="medium" startIcon={<ReplayIcon />} onClick={() => { setConfig(null); setIsResetting(true); }} sx={{ textTransform: 'none' }}>New Import</Button>
+									<Button variant="outlined" size="medium" startIcon={<ReplayIcon />} onClick={() => { setConfig(null); setActiveStep(0); }} sx={{ textTransform: 'none' }}>New Import</Button>
 								</Stack>
 							</Stack>
 						)}

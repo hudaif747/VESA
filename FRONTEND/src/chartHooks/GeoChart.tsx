@@ -375,10 +375,10 @@ function createLegends(
   );
 
   legend.data.setAll([
-    {
-      name: "Earth Observatory Datasets",
-      color: am5.color(0x8c00ff),
-    },
+    // {
+    //   name: "Earth Observatory Datasets",
+    //   color: am5.color(0x8c00ff),
+    // },
     {
       name: "Pangaea Datasets",
       color: am5.color(0xff8c00),

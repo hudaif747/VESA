@@ -13,12 +13,22 @@ export const getIngestionRouter = () => {
   // 1. POST /sync/validate
   router.post('/validate', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { target_url } = req.body;
-      if (!target_url) {
-        res.status(400).json({ error: 'target_url is required' });
+      const { target_url, dataset_id, overwrite } = req.body;
+      if (!target_url || !dataset_id) {
+        res.status(400).json({ error: 'target_url and dataset_id are required' });
         return;
       }
       
+      if (!overwrite) {
+        const exists = await orchestrator.checkDatasetExists(dataset_id);
+        if (exists) {
+          res.status(409).json({ 
+            error: `A dataset with the label '${dataset_id}' already exists.` 
+          });
+          return;
+        }
+      }
+
       const result = await validator.validate(target_url);
       if (!result.valid) {
         let status = 400;
@@ -30,29 +40,37 @@ export const getIngestionRouter = () => {
       }
       res.json(result);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error("[Ingestion API] Validation error:", error);
+      res.status(500).json({ error: "An unexpected error occurred while verifying the connection. Please try again." });
     }
   });
 
   // 2. POST /sync/start
   router.post('/start', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { target_url, dataset_id, batch_size, total_limit } = req.body;
+      const { target_url, dataset_id, batch_size, total_limit, overwrite } = req.body;
       if (!target_url || !dataset_id) {
         res.status(400).json({ error: 'target_url and dataset_id are required' });
         return;
       }
 
-      orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100)
+      // Start the sync process in the background
+      orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100, overwrite)
         .catch((err) => console.error(`[Ingestion API] Background sync failed:`, err));
 
-      res.status(202).json({ 
-        message: 'Sync started.', 
-        target_url, 
-        dataset_id 
-      });
+      // Small delay to ensure the log document gets created and job_id is populated
+      setTimeout(() => {
+        const status = orchestrator.getStatus();
+        res.status(202).json({ 
+          message: 'Sync started.', 
+          target_url, 
+          dataset_id,
+          job_id: status.job_id
+        });
+      }, 50);
     } catch (error: any) {
-      res.status(500).json({ error: error.message });
+      console.error("[Ingestion API] Start error:", error);
+      res.status(500).json({ error: "An unexpected error occurred while starting the import." });
     }
   });
 

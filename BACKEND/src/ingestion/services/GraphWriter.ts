@@ -15,8 +15,10 @@ const isValidPayload = (payload: GraphPayload): boolean => {
 export class GraphWriter {
   constructor(private db: Database) {}
 
-  public async write(payload: GraphPayload): Promise<void> {
+  public async write(payload: GraphPayload, sourcePrefix?: string): Promise<void> {
     if (!isValidPayload(payload)) return;
+
+    const addPrefix = (obj: any) => sourcePrefix && obj ? { ...obj, source_prefix: sourcePrefix } : obj;
 
     try {
       const cols = {
@@ -28,23 +30,23 @@ export class GraphWriter {
       };
 
       // Node updates (Update Document)
-      await cols.ds.save(payload.dataset, { overwriteMode: "update" });
+      if (payload.dataset) await cols.ds.save(addPrefix(payload.dataset), { overwriteMode: "update" });
       
-      for (const auth of payload.authors) {
-        await cols.auth.save(auth, { overwriteMode: "update" });
+      for (const auth of payload.authors || []) {
+        await cols.auth.save(addPrefix(auth), { overwriteMode: "update" });
       }
       
-      for (const kw of payload.keywords) {
-        await cols.kw.save(kw, { overwriteMode: "update" });
+      for (const kw of payload.keywords || []) {
+        await cols.kw.save(addPrefix(kw), { overwriteMode: "update" });
       }
 
       // Edge updates (Ignore if edge already exists)
-      for (const edge of payload.edgesHasAuthor) {
-        await cols.hasAuth.save(edge, { overwriteMode: "ignore" });
+      for (const edge of payload.edgesHasAuthor || []) {
+        await cols.hasAuth.save(addPrefix(edge), { overwriteMode: "ignore" });
       }
 
-      for (const edge of payload.edgesHasKeyword) {
-        await cols.hasKw.save(edge, { overwriteMode: "ignore" });
+      for (const edge of payload.edgesHasKeyword || []) {
+        await cols.hasKw.save(addPrefix(edge), { overwriteMode: "ignore" });
       }
     } catch (error: any) {
       console.error(`\x1b[31m[GraphWriter]  \u2718 Failed to write entity ${payload.dataset?._key}: ${error.message}\x1b[0m`);
@@ -52,9 +54,11 @@ export class GraphWriter {
     }
   }
 
-  public async writeBatch(payloads: GraphPayload[]): Promise<void> {
+  public async writeBatch(payloads: GraphPayload[], sourcePrefix?: string): Promise<void> {
     const validPayloads = payloads.filter(isValidPayload);
     if (validPayloads.length === 0) return;
+
+    const addPrefix = (obj: any) => sourcePrefix && obj ? { ...obj, source_prefix: sourcePrefix } : obj;
 
     try {
       const cols = {
@@ -69,11 +73,11 @@ export class GraphWriter {
       const uniqueBy = (arr: any[], key: string) => [...new Map(arr.map(item => [item[key], item])).values()];
       const uniqueEdges = (arr: any[]) => [...new Map(arr.map(item => [`${item._from}-${item._to}`, item])).values()];
 
-      const datasets = validPayloads.map(p => p.dataset);
-      const authors = uniqueBy(validPayloads.flatMap(p => p.authors), '_key');
-      const keywords = uniqueBy(validPayloads.flatMap(p => p.keywords), '_key');
-      const hasAuthEdges = uniqueEdges(validPayloads.flatMap(p => p.edgesHasAuthor));
-      const hasKwEdges = uniqueEdges(validPayloads.flatMap(p => p.edgesHasKeyword));
+      const datasets = validPayloads.map(p => p.dataset).filter(Boolean).map(addPrefix);
+      const authors = uniqueBy(validPayloads.flatMap(p => p.authors || []), '_key').map(addPrefix);
+      const keywords = uniqueBy(validPayloads.flatMap(p => p.keywords || []), '_key').map(addPrefix);
+      const hasAuthEdges = uniqueEdges(validPayloads.flatMap(p => p.edgesHasAuthor || [])).map(addPrefix);
+      const hasKwEdges = uniqueEdges(validPayloads.flatMap(p => p.edgesHasKeyword || [])).map(addPrefix);
 
       if (datasets.length) await cols.ds.save(datasets, { overwriteMode: "update" });
       if (authors.length) await cols.auth.save(authors, { overwriteMode: "update" });

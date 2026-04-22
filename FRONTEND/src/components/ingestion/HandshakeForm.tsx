@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Box, TextField, Typography, Alert, Button, CircularProgress, Stack, useTheme } from '@mui/material';
+import { Box, TextField, Typography, Alert, Button, CircularProgress, Stack, useTheme, AlertTitle, Checkbox, FormControlLabel } from '@mui/material';
 import { useValidateUrlMutation } from '../../store/services/syncApi';
 
 interface HandshakeFormProps {
-  onValidated: (config: { url: string; prefix: string; limit: number }) => void;
+  onValidated: (config: { url: string; prefix: string; limit: number; overwrite?: boolean }) => void;
 }
 
 const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
@@ -11,13 +11,20 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
   const [url, setUrl] = useState('');
   const [prefix, setPrefix] = useState('');
   const [limit, setLimit] = useState(1000);
-  const [validateUrl, { isLoading, data }] = useValidateUrlMutation();
+  const [overwrite, setOverwrite] = useState(false);
+  const [validateUrl, { isLoading, error }] = useValidateUrlMutation();
+
+  const err = error as any;
+  const isConflict = err?.status === 409;
+  const errData = err?.data;
 
   const handleValidate = async () => {
     try {
-      const response = await validateUrl({ target_url: url }).unwrap();
-      if (response.valid) onValidated({ url, prefix, limit });
-    } catch (err) {}
+      const response = await validateUrl({ target_url: url, dataset_id: prefix, overwrite }).unwrap();
+      if (response.valid) onValidated({ url, prefix, limit, overwrite });
+    } catch {
+      // Error state is automatically captured by RTK Query's 'error' object
+    }
   };
 
   return (
@@ -53,15 +60,45 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated }) => {
           disabled={isLoading} 
         />
       </Box>
-      {data && !data.valid && (
-        <Alert severity="error" variant="outlined" sx={{ borderRadius: 1 }}>
-          {data.message}
+
+      {isConflict && (
+        <Alert severity="warning" variant="outlined" sx={{ borderRadius: 1 }}>
+          <AlertTitle sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Dataset Already Exists</AlertTitle>
+          <Typography variant="body2">
+            This dataset label is currently in use. If you continue, the existing data will be permanently overwritten.
+          </Typography>
+          <FormControlLabel
+            control={<Checkbox checked={overwrite} onChange={(e) => setOverwrite(e.target.checked)} />}
+            label="Confirm overwrite"
+            sx={{ mt: 1 }}
+          />
+        </Alert>
+      )}
+
+      {error && !isConflict && (
+        <Alert 
+          severity="error" 
+          variant="outlined" 
+          sx={{ 
+            borderRadius: 1,
+            backgroundColor: 'rgba(211, 47, 47, 0.04)'
+          }}
+        >
+          <AlertTitle sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
+            Connection Failed {errData?.originalStatus ? `(Error ${errData.originalStatus})` : (err?.status ? `(Status ${err.status})` : '')}
+          </AlertTitle>
+          <Typography variant="body2">{errData?.message || errData?.error || 'An unexpected error occurred while verifying the connection.'}</Typography>
+          {errData?.reason && (
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, fontStyle: 'italic', opacity: 0.8 }}>
+              Reason: {errData.reason}
+            </Typography>
+          )}
         </Alert>
       )}
       <Button 
         variant="contained" 
         onClick={handleValidate} 
-        disabled={isLoading || !url || !prefix} 
+        disabled={isLoading || !url || !prefix || (isConflict && !overwrite)} 
         size="large" 
         sx={{ 
           py: 1.5, 

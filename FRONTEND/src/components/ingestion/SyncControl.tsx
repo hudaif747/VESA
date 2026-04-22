@@ -4,7 +4,7 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { useStartSyncMutation } from '../../store/services/syncApi';
 
 interface SyncControlProps {
-	config: { url: string; prefix: string; limit: number };
+	config: { url: string; prefix: string; limit: number; overwrite?: boolean };
 	status: any;
 }
 
@@ -51,7 +51,7 @@ const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 						startIcon={<PlayArrowIcon />}
 						size="large"
 						onClick={() =>
-							startSync({ target_url: config.url, dataset_id: config.prefix, total_limit: config.limit })
+							startSync({ target_url: config.url, dataset_id: config.prefix, total_limit: config.limit, overwrite: config.overwrite })
 						}
 						disabled={isStarting}
 						sx={{

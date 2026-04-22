@@ -204,7 +204,7 @@ export interface IContainerProps {
 }
 
 export interface ISyncState {
-  status: "running" | "idle" | "failed";
+  status: "running" | "idle" | "failed" | "completed";
   processed: number;
   total: number;
   current_prefix: string;
@@ -212,6 +212,8 @@ export interface ISyncState {
 
 export interface ISyncValidateRequest {
   target_url: string;
+  dataset_id: string;
+  overwrite?: boolean;
 }
 
 export interface ISyncValidateResponse {
@@ -226,6 +228,7 @@ export interface ISyncStartRequest {
   dataset_id: string;
   batch_size?: number;
   total_limit?: number;
+  overwrite?: boolean;
 }
 
 export interface ISyncStartResponse {

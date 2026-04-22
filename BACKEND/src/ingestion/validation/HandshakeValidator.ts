@@ -34,9 +34,12 @@ export class HandshakeValidator {
       
       if (axios.isAxiosError(error)) {
         if (!error.response) {
-          return { valid: false, reason: 'source_offline', message: 'The data source is currently unreachable or timed out.', originalStatus: 503 };
+          return { valid: false, reason: 'source_offline', message: 'The API Endpoint is currently unreachable or timed out.', originalStatus: 503 };
         }
-        return { valid: false, reason: 'unreachable', message: `Data source responded with error: ${error.message}`, originalStatus: error.response.status };
+        if (error.response.status === 404) {
+          return { valid: false, reason: 'not_found', message: 'The specified API Endpoint could not be found. Please check the URL and try again.', originalStatus: 404 };
+        }
+        return { valid: false, reason: 'unreachable', message: `API Endpoint responded with error: ${error.message}`, originalStatus: error.response.status };
       }
       
       return { valid: false, reason: 'unknown_error', message: error.message };

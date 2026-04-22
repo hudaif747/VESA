@@ -7,15 +7,16 @@ import { GraphWriter } from './services/GraphWriter';
 import { IDataAdapter } from './contracts/IDataAdapter';
 
 // Global flag to disable prefixing logic entirely for testing purposes.
-export const SKIP_PREFIXING_TEST_MODE = true;
+export const SKIP_PREFIXING_TEST_MODE = false;
 
 export class SyncOrchestrator {
   private validator = new HandshakeValidator();
   private prefixer = new PrefixingService();
   private extractor = new RelationExtractor();
   private writer: GraphWriter;
+  private db: Database;
   
-  private state: { status: 'running' | 'idle' | 'failed', processed: number, total: number, current_prefix: string } = {
+  private state: { status: 'running' | 'idle' | 'failed' | 'completed', processed: number, total: number, current_prefix: string, job_id?: string } = {
     status: 'idle',
     processed: 0,
     total: 0,
@@ -24,11 +25,20 @@ export class SyncOrchestrator {
   private abortSignal = false;
 
   constructor(db: Database) {
+    this.db = db;
     this.writer = new GraphWriter(db);
   }
 
   public getStatus() {
     return this.state;
+  }
+
+  public async checkDatasetExists(prefix: string): Promise<boolean> {
+    const cursor = await this.db.query(
+      `FOR log IN SyncLogs FILTER log.prefix == @prefix LIMIT 1 RETURN log`,
+      { prefix }
+    );
+    return cursor.hasNext;
   }
 
   public stop() {
@@ -50,23 +60,44 @@ export class SyncOrchestrator {
     }
   }
 
-  public async sync(url: string, prefix: string, limit: number = 1000, batchSize: number = 100): Promise<void> {
+  public async sync(url: string, prefix: string, limit: number = 1000, batchSize: number = 100, overwrite: boolean = false): Promise<void> {
     if (this.state.status === 'running') {
       throw new Error(`[SyncOrchestrator] A sync is already running.`);
     }
 
-    this.state = { status: 'running', processed: 0, total: limit, current_prefix: prefix };
+    if (overwrite) {
+      console.log(`\x1b[33m[SyncOrchestrator] Overwrite is TRUE. Purging existing records for prefix '${prefix}'...\x1b[0m`);
+      const targetCollections = ['Dataset', 'Author', 'Keywords', 'HasAuthor', 'HasKeyword'];
+      for (const col of targetCollections) {
+        await this.db.query(`FOR doc IN @@col FILTER doc.source_prefix == @prefix REMOVE doc IN @@col`, { '@col': col, prefix });
+      }
+      await this.db.query(`FOR log IN SyncLogs FILTER log.prefix == @prefix REMOVE log IN SyncLogs`, { prefix });
+    }
+
+    const syncLogsCol = this.db.collection('SyncLogs');
+    const logDoc = await syncLogsCol.save({
+      source_url: url,
+      prefix,
+      status: 'running',
+      count_success: 0,
+      count_failure: 0,
+      start_time: new Date().toISOString()
+    });
+
+    const jobId = logDoc._key;
+    this.state = { status: 'running', processed: 0, total: limit, current_prefix: prefix, job_id: jobId };
     this.abortSignal = false;
 
     if (SKIP_PREFIXING_TEST_MODE) {
       console.warn(`\x1b[33m[SyncOrchestrator] *** TEST MODE ACTIVE: Prefixing logic will be skipped entirely. ***\x1b[0m`);
     }
 
-    console.log(`\x1b[36m[SyncOrchestrator] Initiating handshake with ${url}...\x1b[0m`);
+    console.log(`\x1b[36m[SyncOrchestrator] Initiating handshake with ${url}... (Job ID: ${jobId})\x1b[0m`);
     const validationResult = await this.validator.validate(url);
     
     if (!validationResult.valid) {
       this.state.status = 'failed';
+      await syncLogsCol.update(jobId, { status: 'failed', error_message: `Handshake failed: ${validationResult.message}`, end_time: new Date().toISOString() });
       console.error(`\x1b[31m[SyncOrchestrator] Handshake failed: ${validationResult.message}\x1b[0m`);
       throw new Error(`[SyncOrchestrator] Handshake failed: ${validationResult.reason}`);
     }
@@ -75,10 +106,9 @@ export class SyncOrchestrator {
 
     let paginationToken: string | null = null;
     let hasMoreData = true;
+    const startTime = Date.now();
 
     try {
-      const startTime = Date.now();
-
       while (this.state.processed < limit && !this.abortSignal && hasMoreData) {
         const params: any = { limit: batchSize };
         if (paginationToken) {
@@ -108,34 +138,31 @@ export class SyncOrchestrator {
         const batchPayloads: GraphPayload[] = [];
         let failedRecordId = "unknown";
 
-        try {
-          for (const record of records) {
-            if (this.state.processed >= limit || this.abortSignal) {
-              if (this.abortSignal) console.log(`\x1b[33m[SyncOrchestrator] Abort signal received. Stopping.\x1b[0m`);
-              break;
-            }
+        for (const record of records) {
+          if (this.state.processed >= limit || this.abortSignal) {
+            if (this.abortSignal) console.log(`\x1b[33m[SyncOrchestrator] Abort signal received. Stopping.\x1b[0m`);
+            break;
+          }
 
-            failedRecordId = record.dataset?.id || failedRecordId;
+          failedRecordId = record.dataset?.id || failedRecordId;
+          
+          // Respect the global test flag to conditionally apply or skip prefixing
+          const targetRecord = SKIP_PREFIXING_TEST_MODE 
+            ? record 
+            : this.prefixer.applyPrefix(prefix, record);
             
-            // Respect the global test flag to conditionally apply or skip prefixing
-            const targetRecord = SKIP_PREFIXING_TEST_MODE 
-              ? record 
-              : this.prefixer.applyPrefix(prefix, record);
-              
-            const graphPayload = this.extractor.extract(targetRecord);
-            batchPayloads.push(graphPayload);
+          const graphPayload = this.extractor.extract(targetRecord);
 
-            this.state.processed++;
-          }
+          batchPayloads.push(graphPayload);
 
-          if (batchPayloads.length > 0) {
-            await this.writer.writeBatch(batchPayloads);
-            const rps = (this.state.processed / ((Date.now() - startTime) / 1000)).toFixed(2);
-            console.log(`\x1b[35m[SyncOrchestrator] Processed ${this.state.processed}/${limit} records (Throughput: ${rps} ops/sec)...\x1b[0m`);
-          }
-        } catch (err: any) {
-          console.error(`\x1b[31m[SyncOrchestrator] \u2718 Transformation/Write failure around dataset [${prefix}:${failedRecordId}]: ${err.message}\x1b[0m`);
-          throw err;
+          this.state.processed++;
+        }
+
+        if (batchPayloads.length > 0) {
+          await this.writer.writeBatch(batchPayloads, prefix);
+          await syncLogsCol.update(jobId, { count_success: this.state.processed });
+          const rps = (this.state.processed / ((Date.now() - startTime) / 1000)).toFixed(2);
+          console.log(`\x1b[35m[SyncOrchestrator] Processed ${this.state.processed}/${limit} records (Throughput: ${rps} ops/sec)...\x1b[0m`);
         }
 
         if (nextToken && !this.abortSignal && this.state.processed < limit) {
@@ -147,9 +174,11 @@ export class SyncOrchestrator {
       }
 
       this.state.status = 'idle';
+      await syncLogsCol.update(jobId, { status: 'completed', end_time: new Date().toISOString() });
       console.log(`\x1b[32m[SyncOrchestrator] \u2714 Sync complete. Total synced: ${this.state.processed} records.\x1b[0m`);
     } catch (err: any) {
       this.state.status = 'failed';
+      await syncLogsCol.update(jobId, { status: 'failed', error_message: err.message, end_time: new Date().toISOString() });
       console.error(`\x1b[31m[SyncOrchestrator] \u2718 Sync failed at record ${this.state.processed}: ${err.message}\x1b[0m`);
       throw err;
     }
