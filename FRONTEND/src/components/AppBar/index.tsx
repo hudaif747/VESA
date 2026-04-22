@@ -1,5 +1,8 @@
-import { Fab, Typography, Box, useTheme } from "@mui/material";
+import { Fab, Typography, Box, useTheme, Tooltip, IconButton } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SettingsIcon from "@mui/icons-material/Settings";
+import HomeIcon from "@mui/icons-material/Home";
+import { useNavigate } from "react-router-dom";
 import { useDatafill } from "../../hooks/useDatafill";
 import { useAppDispatch } from "../../store/hooks";
 import { resetDatasetSlice } from "../../store/dataset/datasetSlice";
@@ -9,6 +12,7 @@ import HelpButton from "./HelpButton";
 
 const AppBar = (): JSX.Element => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { initialSetterBundle } = useDatafill();
 
@@ -39,7 +43,26 @@ const AppBar = (): JSX.Element => {
       <Typography variant="h1">
         <b>Visualisation Enabled Search Application</b>
       </Typography>
+
       <Box>
+        <Tooltip title="Home">
+          <IconButton
+            aria-label="home-button"
+            color="primary"
+            onClick={() => navigate("/")}
+          >
+            <HomeIcon sx={{ fontSize: "1.6rem" }} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Setup">
+          <IconButton
+            aria-label="setup-button"
+            color="primary"
+            onClick={() => navigate("/setup")}
+          >
+            <SettingsIcon sx={{ fontSize: "1.6rem" }} />
+          </IconButton>
+        </Tooltip>
         <GridSettingsButton />
         <HelpButton />
       </Box>
