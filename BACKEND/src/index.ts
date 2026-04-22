@@ -2,10 +2,10 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 
-import { connectArango } from "./database";
 import { bootstrapGateway } from "./gateway";
 import { pangaeaProxyRouter } from "./proxy/pangaeaProxy";
 import { getIngestionRouter } from "./ingestion/ingestionRouter";
+import { ArangoInitService } from "./gateway/services/ArangoInitService";
 
 // IMPORT ROUTES
 import mainRouter from "./routes/getDataById";
@@ -66,7 +66,7 @@ ROUTES.forEach(([path, router]) => app.use(path, router));
 async function startServer() {
   try {
     bootstrapGateway();
-    await connectArango();
+    await ArangoInitService.init();
     app.listen(expressPort, () => {
       console.log(`Server started on port ${expressPort}`);
     });
