@@ -27,6 +27,22 @@ export class SyncOrchestrator {
   constructor(db: Database) {
     this.db = db;
     this.writer = new GraphWriter(db);
+    // On every startup, any SyncLog still marked 'running' is a crash remnant — mark it failed.
+    this._cleanupOrphanedJobs().catch(err =>
+      console.error('[SyncOrchestrator] Failed to clean up orphaned jobs:', err)
+    );
+  }
+
+  private async _cleanupOrphanedJobs(): Promise<void> {
+    await this.db.query(`
+      FOR log IN SyncLogs
+        FILTER log.status == 'running'
+        UPDATE log WITH {
+          status: 'failed',
+          error_message: 'Process terminated unexpectedly (server restarted)',
+          end_time: DATE_ISO8601(DATE_NOW())
+        } IN SyncLogs
+    `);
   }
 
   public getStatus() {
@@ -43,12 +59,17 @@ export class SyncOrchestrator {
       `);
       if (cursor.hasNext) {
         const log = await cursor.next();
+        // A 'running' entry from the DB means the previous process crashed before it could finalize.
+        // Never surface this as 'running' — nothing is actually running in this process.
+        const safeStatus = log.status === 'running' ? 'failed' : log.status;
         return {
-          status: log.status,
+          status: safeStatus,
           processed: log.count_success,
-          total: log.count_success + log.count_failure, // Approximation if original total isn't stored
+          total: log.total_limit ?? (log.count_success + log.count_failure),
           current_prefix: log.prefix,
-          job_id: log._key
+          job_id: log._key,
+          ...(safeStatus === 'failed' && !log.error_message && { error_message: 'Process terminated unexpectedly (server restarted)' }),
+          ...(log.error_message && { error_message: log.error_message }),
         };
       }
     } catch (error) {
@@ -105,6 +126,7 @@ export class SyncOrchestrator {
       status: 'running',
       count_success: 0,
       count_failure: 0,
+      total_limit: limit,
       start_time: new Date().toISOString(),
       ui_config
     });
