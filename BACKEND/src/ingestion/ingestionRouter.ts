@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { HandshakeValidator } from './validation/HandshakeValidator';
 import { SyncOrchestrator } from './SyncOrchestrator';
 import { db } from '../database';
+import { syncHistoryQuery } from '../queries/syncHistoryQuery';
 
 // Instantiateorchestrator outside to maintain state across requests
 const orchestrator = new SyncOrchestrator(db);
@@ -48,18 +49,18 @@ export const getIngestionRouter = () => {
   // 2. POST /sync/start
   router.post('/start', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { target_url, dataset_id, batch_size, total_limit, overwrite } = req.body;
+      const { target_url, dataset_id, batch_size, total_limit, overwrite, ui_config } = req.body;
       if (!target_url || !dataset_id) {
         res.status(400).json({ error: 'target_url and dataset_id are required' });
         return;
       }
 
       // Start the sync process and await the Job ID
-      const jobId = await orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100, overwrite);
+      const jobId = await orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100, overwrite, ui_config ?? {});
 
-      res.status(202).json({ 
-        message: 'Sync started.', 
-        target_url, 
+      res.status(202).json({
+        message: 'Sync started.',
+        target_url,
         dataset_id,
         job_id: jobId
       });
@@ -86,6 +87,18 @@ export const getIngestionRouter = () => {
   router.post('/stop', (req: Request, res: Response) => {
     orchestrator.stop();
     res.json({ message: 'Stop signal sent to the orchestrator.' });
+  });
+
+  // 5. GET /sync/history
+  router.get('/history', async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const cursor = await db.query(syncHistoryQuery);
+      const result = await cursor.all();
+      res.json({ result });
+    } catch (error: any) {
+      console.error("[Ingestion API] History error:", error);
+      res.status(500).json({ error: "Failed to fetch sync history." });
+    }
   });
 
   return router;

@@ -84,7 +84,7 @@ export class SyncOrchestrator {
     }
   }
 
-  public async sync(url: string, prefix: string, limit: number = 1000, batchSize: number = 100, overwrite: boolean = false): Promise<string> {
+  public async sync(url: string, prefix: string, limit: number = 1000, batchSize: number = 100, overwrite: boolean = false, ui_config: Record<string, any> = {}): Promise<string> {
     if (this.state.status === 'running') {
       throw new Error(`[SyncOrchestrator] A sync is already running.`);
     }
@@ -105,7 +105,8 @@ export class SyncOrchestrator {
       status: 'running',
       count_success: 0,
       count_failure: 0,
-      start_time: new Date().toISOString()
+      start_time: new Date().toISOString(),
+      ui_config
     });
 
     const jobId = logDoc._key;

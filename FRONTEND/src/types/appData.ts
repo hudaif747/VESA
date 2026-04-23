@@ -240,3 +240,16 @@ export interface ISyncStartResponse {
 export interface ISyncStopResponse {
   message: string;
 }
+
+export interface ISyncHistoryEntry {
+  prefix: string;
+  source_url: string;
+  count_success: number;
+  start_time: string;
+  end_time: string;
+  ui_config: Record<string, any>;
+}
+
+export interface ISyncHistoryResponse {
+  result: ISyncHistoryEntry[];
+}

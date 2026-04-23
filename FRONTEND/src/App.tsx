@@ -9,34 +9,33 @@ import "./App.scss";
 import Footer from "./components/Footer";
 import AppBar from "./components/AppBar";
 import { IngestionPage } from "./components/ingestion";
+import { useGetSyncHistoryQuery } from "./store/services/syncApi";
 
-/**
- * This is the root element of the application. The layout is made up of three sections: The Appbar, the search box and the Main content.
- * The AppProvider provides the app with global states.
- */
+// Subscribes to sync history once at boot so the data is cached and shared app-wide.
+function AppContent(): JSX.Element {
+  useGetSyncHistoryQuery();
+  return (
+    <BrowserRouter>
+      <Stack id="app" sx={{ minHeight: "100vh", width: "100%" }}>
+        <AppBar />
+        <Box component="main" sx={{ flex: 1, width: "100%" }}>
+          <Routes>
+            <Route path="/" element={<MainContent />} />
+            <Route path="/setup" element={<IngestionPage />} />
+          </Routes>
+        </Box>
+        <Footer />
+      </Stack>
+    </BrowserRouter>
+  );
+}
+
 function App(): JSX.Element {
   return (
     <Provider store={Store}>
       <ThemeProvider theme={Theme}>
         <CssBaseline />
-        <BrowserRouter>
-          <Stack id="app" sx={{ minHeight: "100vh", width: "100%" }}>
-            <AppBar />
-            <Box
-              component="main"
-              sx={{
-                flex: 1,
-                width: "100%",
-              }}
-            >
-              <Routes>
-                <Route path="/" element={<MainContent />} />
-                <Route path="/setup" element={<IngestionPage />} />
-              </Routes>
-            </Box>
-            <Footer />
-          </Stack>
-        </BrowserRouter>
+        <AppContent />
       </ThemeProvider>
     </Provider>
   );
