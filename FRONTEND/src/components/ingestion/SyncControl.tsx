@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Typography, LinearProgress, Alert, Stack, Paper, useTheme } from '@mui/material';
+import { Box, Button, Typography, LinearProgress, Alert, Stack, useTheme } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
 import { useStartSyncMutation, useStopSyncMutation } from '../../store/services/syncApi';
@@ -14,7 +14,6 @@ const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 	const [startSync, { isLoading: isStarting, error }] = useStartSyncMutation();
 	const [stopSync, { isLoading: isStopping }] = useStopSyncMutation();
 
-	// Automatically show progress if a sync is already running globally
 	const isRunning = status?.status === 'running';
 	const totalRecords = status?.total || config.limit || 1;
 	const processedRecords = status?.processed || 0;
@@ -23,12 +22,11 @@ const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 	return (
 		<Box sx={{ mt: 1 }}>
 			<Stack spacing={3}>
-				<Box>
-					<Typography variant="h6" gutterBottom>Step 2: Data Import</Typography>
+					{config.url && (
 					<Typography variant="body2" color="text.secondary">
-						Connected to <b>{config.url}</b>. Ready to process <b>{config.limit}</b> records for the dataset <b>{config.prefix}</b>.
+						Connected to <b>{config.url}</b>. Ready to process <b>{config.limit}</b> records for dataset <b>{config.prefix}</b>.
 					</Typography>
-				</Box>
+				)}
 				
 				{isRunning ? (
 					<Stack spacing={1}>

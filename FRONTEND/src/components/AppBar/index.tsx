@@ -1,6 +1,6 @@
 import { Fab, Typography, Box, useTheme, Tooltip, IconButton } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import HomeIcon from "@mui/icons-material/Home";
+import DashboardIcon from "@mui/icons-material/Dashboard";
 import { useNavigate } from "react-router-dom";
 import { useDatafill } from "../../hooks/useDatafill";
 import { useAppDispatch } from "../../store/hooks";
@@ -45,18 +45,18 @@ const AppBar = (): JSX.Element => {
       </Typography>
 
       <Box>
-        <Tooltip title="Home">
+        <Tooltip title="Go to Dashboard">
           <IconButton
-            aria-label="home-button"
+            aria-label="go-to-dashboard-button"
             color="primary"
             onClick={() => navigate("/")}
           >
-            <HomeIcon sx={{ fontSize: "1.6rem" }} />
+            <DashboardIcon sx={{ fontSize: "1.6rem" }} />
           </IconButton>
         </Tooltip>
         <DataSourcesButton />
         <GridSettingsButton />
-        <HelpButton />
+        {/* <HelpButton /> */}
       </Box>
     </Box>
   );

@@ -5,6 +5,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import { useNavigate } from 'react-router-dom';
 import HandshakeForm from './HandshakeForm';
 import SyncControl from './SyncControl';
+import ConnectedSources from './ConnectedSources';
 import { useGetSyncStatusQuery, useGetSyncHistoryQuery } from '../../store/services/syncApi';
 
 const steps = ['Connect', 'Import', 'Analyze'];
@@ -18,37 +19,47 @@ const IngestionPage: React.FC = () => {
 	const [ignoredJobId, setIgnoredJobId] = useState<string | null>(() => localStorage.getItem('ignoredJobId'));
 
 	const { data: syncStatus, isSuccess } = useGetSyncStatusQuery(undefined, { pollingInterval: 2000 });
-	const { refetch: refetchHistory } = useGetSyncHistoryQuery();
+	const { data: historyData, refetch: refetchHistory } = useGetSyncHistoryQuery();
+
+	const handleReset = () => {
+		const currentJobId = syncStatus?.job_id;
+		if (currentJobId) {
+			setIgnoredJobId(currentJobId);
+			localStorage.setItem('ignoredJobId', currentJobId);
+		}
+		setConfig(null);
+		setActiveStep(0);
+		setErrorMsg(null);
+	};
 
 	useEffect(() => {
-		if (isSuccess && syncStatus) {
-			const { status, processed, total, current_prefix, error_message, target_url, source_url, job_id } = syncStatus as any;
-			const isCompleted = status === 'completed' || (status === 'idle' && processed > 0 && processed === total);
-			const isStopped = status === 'idle' && processed > 0 && processed < total;
-			const url = target_url || source_url || '';
+		if (!isSuccess || !syncStatus) return;
+		const { status, processed, total, current_prefix, error_message, job_id } = syncStatus;
+		const url = syncStatus.target_url || syncStatus.source_url || '';
+		const isCompleted = status === 'completed' || (status === 'idle' && processed > 0 && processed === total);
+		const isStopped = status === 'idle' && processed > 0 && processed < total;
 
-			if (status === 'running') {
-				if (activeStep !== 1) {
-					setConfig({ url, prefix: current_prefix, limit: total });
-					setActiveStep(1);
-				}
-				setErrorMsg(null);
-			} else if (isCompleted && job_id !== ignoredJobId) {
-				if (activeStep !== 2) {
-					setConfig({ url, prefix: current_prefix, limit: total });
-					setActiveStep(2);
-					refetchHistory();
-				}
-				setErrorMsg(null);
-			} else if (isStopped && job_id !== ignoredJobId) {
-				if (activeStep !== 1) {
-					setConfig({ url, prefix: current_prefix, limit: total });
-					setActiveStep(1);
-				}
-				setErrorMsg(`Synchronization stopped. Processed ${processed} of ${total} records. Please start a New Import.`);
-			} else if (status === 'failed') {
-				setErrorMsg(error_message || 'The previous synchronization process failed.');
+		if (status === 'running') {
+			if (activeStep !== 1) {
+				setConfig({ url, prefix: current_prefix, limit: total });
+				setActiveStep(1);
 			}
+			setErrorMsg(null);
+		} else if (isCompleted && job_id !== ignoredJobId) {
+			if (activeStep !== 2) {
+				setConfig({ url, prefix: current_prefix, limit: total });
+				setActiveStep(2);
+				refetchHistory();
+			}
+			setErrorMsg(null);
+		} else if (isStopped && job_id !== ignoredJobId) {
+			if (activeStep !== 1) {
+				setConfig({ url, prefix: current_prefix, limit: total });
+				setActiveStep(1);
+			}
+			setErrorMsg(`Synchronization stopped. Processed ${processed} of ${total} records. Please start a New Import.`);
+		} else if (status === 'failed') {
+			setErrorMsg(error_message || 'The previous synchronization process failed.');
 		}
 	}, [isSuccess, syncStatus, activeStep, ignoredJobId]);
 
@@ -108,41 +119,30 @@ const IngestionPage: React.FC = () => {
 									sx={{ mt: 3, alignSelf: 'flex-start', textTransform: 'none' }} 
 									color="error"
 									variant="text" 
-									onClick={() => { 
-										const currentJobId = (syncStatus as any)?.job_id;
-										if (currentJobId) {
-											setIgnoredJobId(currentJobId);
-											localStorage.setItem('ignoredJobId', currentJobId);
-										}
-										setConfig(null); 
-										setActiveStep(0); 
-										setErrorMsg(null);
-									}}
+									onClick={handleReset}
 								>
 									Reset
 								</Button>
 							</Box>
 						)}
-						{activeStep === 2 && (
-							<Stack spacing={3} alignItems="flex-start" sx={{ mt: 2 }}>
-								<Alert severity="success" sx={{ width: '100%', borderRadius: 1 }}>
-									Successfully processed {config?.limit} records for <b>{config?.prefix}</b>.
-								</Alert>
-								<Stack direction="row" spacing={2}>
-									<Button variant="contained" size="medium" startIcon={<DashboardIcon />} onClick={async () => { await refetchHistory(); navigate('/'); }} sx={{ textTransform: 'none' }}>View Dashboard</Button>
-									<Button variant="outlined" size="medium" startIcon={<ReplayIcon />} onClick={() => { 
-										const currentJobId = (syncStatus as any)?.job_id;
-										if (currentJobId) {
-											setIgnoredJobId(currentJobId);
-											localStorage.setItem('ignoredJobId', currentJobId);
-										}
-										setConfig(null); 
-										setActiveStep(0); 
-										setErrorMsg(null);
-									}} sx={{ textTransform: 'none' }}>New Import</Button>
+						{activeStep === 2 && (() => {
+							const completedEntry = historyData?.result?.find(e => e.prefix === config?.prefix);
+							return (
+								<Stack spacing={3} sx={{ mt: 2 }}>
+									<Alert severity="success" sx={{ width: '100%', borderRadius: 1 }}>
+										<b>{completedEntry?.count_success ?? config?.limit}</b> records imported for <b>{config?.prefix}</b>.
+									</Alert>
+									<Box>
+										<Typography variant="subtitle2" color="text.secondary" gutterBottom>Connected Sources</Typography>
+										<ConnectedSources />
+									</Box>
+									<Stack direction="row" spacing={2}>
+										<Button variant="contained" size="medium" startIcon={<DashboardIcon />} onClick={() => navigate('/')} sx={{ textTransform: 'none' }}>View Dashboard</Button>
+										<Button variant="outlined" size="medium" startIcon={<ReplayIcon />} onClick={handleReset} sx={{ textTransform: 'none' }}>New Import</Button>
+									</Stack>
 								</Stack>
-							</Stack>
-						)}
+							);
+						})()}
 					</Box>
 				</Stack>
 			</Paper>

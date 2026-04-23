@@ -208,6 +208,10 @@ export interface ISyncState {
   processed: number;
   total: number;
   current_prefix: string;
+  job_id?: string;
+  error_message?: string;
+  target_url?: string;
+  source_url?: string;
 }
 
 export interface ISyncValidateRequest {

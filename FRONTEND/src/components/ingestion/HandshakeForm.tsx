@@ -32,7 +32,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
     <Stack spacing={3} sx={{ mt: theme.spacing(1) }}>
       {isSystemBusy ? (
         <Alert severity="info" variant="outlined" sx={{ borderRadius: 1 }}>
-          <AlertTitle sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>System Busy</AlertTitle>
+          <AlertTitle>System Busy</AlertTitle>
           An import is currently in progress. Please wait for completion or stop the current job.
         </Alert>
       ) : (
@@ -71,7 +71,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
 
       {isConflict && (
         <Alert severity="warning" variant="outlined" sx={{ borderRadius: 1 }}>
-          <AlertTitle sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Dataset Already Exists</AlertTitle>
+          <AlertTitle>Dataset Already Exists</AlertTitle>
           <Typography variant="body2">
             This dataset label is currently in use. If you continue, the existing data will be permanently overwritten.
           </Typography>
@@ -92,7 +92,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
             backgroundColor: 'rgba(211, 47, 47, 0.04)'
           }}
         >
-          <AlertTitle sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}>
+          <AlertTitle>
             Connection Failed {errData?.originalStatus ? `(Error ${errData.originalStatus})` : (err?.status ? `(Status ${err.status})` : '')}
           </AlertTitle>
           <Typography variant="body2">{errData?.message || errData?.error || 'An unexpected error occurred while verifying the connection.'}</Typography>
