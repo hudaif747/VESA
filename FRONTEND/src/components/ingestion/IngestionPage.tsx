@@ -5,7 +5,7 @@ import ReplayIcon from '@mui/icons-material/Replay';
 import { useNavigate } from 'react-router-dom';
 import HandshakeForm from './HandshakeForm';
 import SyncControl from './SyncControl';
-import { useGetSyncStatusQuery } from '../../store/services/syncApi';
+import { useGetSyncStatusQuery, useGetSyncHistoryQuery } from '../../store/services/syncApi';
 
 const steps = ['Connect', 'Import', 'Analyze'];
 
@@ -18,6 +18,7 @@ const IngestionPage: React.FC = () => {
 	const [ignoredJobId, setIgnoredJobId] = useState<string | null>(() => localStorage.getItem('ignoredJobId'));
 
 	const { data: syncStatus, isSuccess } = useGetSyncStatusQuery(undefined, { pollingInterval: 2000 });
+	const { refetch: refetchHistory } = useGetSyncHistoryQuery();
 
 	useEffect(() => {
 		if (isSuccess && syncStatus) {
@@ -36,6 +37,7 @@ const IngestionPage: React.FC = () => {
 				if (activeStep !== 2) {
 					setConfig({ url, prefix: current_prefix, limit: total });
 					setActiveStep(2);
+					refetchHistory();
 				}
 				setErrorMsg(null);
 			} else if (isStopped && job_id !== ignoredJobId) {
@@ -127,7 +129,7 @@ const IngestionPage: React.FC = () => {
 									Successfully processed {config?.limit} records for <b>{config?.prefix}</b>.
 								</Alert>
 								<Stack direction="row" spacing={2}>
-									<Button variant="contained" size="medium" startIcon={<DashboardIcon />} onClick={() => navigate('/')} sx={{ textTransform: 'none' }}>View Dashboard</Button>
+									<Button variant="contained" size="medium" startIcon={<DashboardIcon />} onClick={async () => { await refetchHistory(); navigate('/'); }} sx={{ textTransform: 'none' }}>View Dashboard</Button>
 									<Button variant="outlined" size="medium" startIcon={<ReplayIcon />} onClick={() => { 
 										const currentJobId = (syncStatus as any)?.job_id;
 										if (currentJobId) {

@@ -1,6 +1,5 @@
 import { Fab, Typography, Box, useTheme, Tooltip, IconButton } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import SettingsIcon from "@mui/icons-material/Settings";
 import HomeIcon from "@mui/icons-material/Home";
 import { useNavigate } from "react-router-dom";
 import { useDatafill } from "../../hooks/useDatafill";
@@ -9,6 +8,7 @@ import { resetDatasetSlice } from "../../store/dataset/datasetSlice";
 import { resetSelectedKeyword } from "../../store/selectedKeyword/selectedKeywordSlice";
 import GridSettingsButton from "./GridSettingsButton";
 import HelpButton from "./HelpButton";
+import DataSourcesButton from "./DataSourcesButton";
 
 const AppBar = (): JSX.Element => {
   const theme = useTheme();
@@ -54,15 +54,7 @@ const AppBar = (): JSX.Element => {
             <HomeIcon sx={{ fontSize: "1.6rem" }} />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Setup">
-          <IconButton
-            aria-label="setup-button"
-            color="primary"
-            onClick={() => navigate("/setup")}
-          >
-            <SettingsIcon sx={{ fontSize: "1.6rem" }} />
-          </IconButton>
-        </Tooltip>
+        <DataSourcesButton />
         <GridSettingsButton />
         <HelpButton />
       </Box>
