@@ -1,156 +1,124 @@
-# VESA
-Visualization Enabled Search Application
-Demo version is available [here](https://vesa.webapps.nfdi4earth.de/)
-<p align="center"> 
-  <img src="./assets/Hero.png" alt="Hero image"> 
+# VESA2  (Visualisation Enabled Search Application)
+
+<p align="center">
+  <img src="./assets/Hero.png" alt="Hero image">
 </p>
 
-Repository for the Visualisation Enabled Search Application (VESA). It is a visual exploration and search tool that assists users in navigating through a graph in an intuitive way. Different visualizations help in finding information across different dimensions. For example:
+Repository for the Visualisation Enabled Search Application. It is a visual exploration and search tool that assists users in navigating through a knowledge graph in an intuitive way. Different visualisations assist in finding information across different dimensions. For example: Map &rarr; Spatial Context, Line Charts &rarr; Temporal context, Network Diagrams or graphs &rarr; interrelations, Word Cloud &rarr; Thematic context. Data is ingested from external sources into a local ArangoDB knowledge graph at setup time. All runtime queries run against the local graph — no live external calls.
 
-- **Map** → Spatial Context
-- **Line Charts** → Temporal Context
-- **Network Diagrams or Graphs** → Interrelations
-- **Word Cloud** → Thematic Context
+[[_TOC_]]
 
-These dimensions provide various contexts, such as dataset locations (Map), measurement data (Temporal Charts), and word clouds to show different thematic contexts of datasets.
+## ✨ Features
+You can find a list of the latest changes in the [CHANGELOG]()
 
-## 🛠 Setting Up the Local Development Environment
+## 📋 Prerequisites
 
-This section provides a detailed guide on how to set up the VESA project for local development, including setting up ArangoDB, restoring the database dump, and configuring and running the backend and frontend components.
+Before you begin, ensure you have the following installed on your machine:
 
-### 1. Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
-Before starting, ensure you have the following software installed on your machine:
+That is the only requirement to run the full application stack.
 
-- [Node.js](https://nodejs.org/) (v14 or above recommended)
-- [npm](https://www.npmjs.com/) (comes with Node.js)
-- [ArangoDB](https://www.arangodb.com/download-major/)
+> 💡 **For local development without Docker**
+> You will additionally need [Node.js](https://nodejs.org/) v20+ and a locally running ArangoDB instance on port 8529.
 
-### 2. Setting Up ArangoDB
+## 🚀 Quick Start
 
-VESA uses ArangoDB as its database. Follow these steps to set up ArangoDB:
+Follow these steps to get the application running:
 
-1. **Download and Install ArangoDB**:
-   - Visit the [ArangoDB Download Page](https://www.arangodb.com/download-major/) and download the appropriate version for your operating system.
-   - Follow the installation instructions provided on the website for your OS.
+1. **Clone the Repository:**
 
-2. **Start the ArangoDB Server**:
-   - After installation, start the ArangoDB server. You can usually start it from the command line or through the service management tools provided by your OS.
-   - By default, ArangoDB will run on `http://127.0.0.1:8529/`.
+    ```bash
+    git clone https://github.com/your-org/vesa2.git
+    ```
 
-3. **Access the ArangoDB Web Interface**:
-   - Open a web browser and go to `http://127.0.0.1:8529/` to access the ArangoDB web interface.
-   - Log in using the default credentials (`username: root`, `password: root`). You can change these credentials if necessary.
+2. **Navigate to the Project Directory:**
 
-4. **Restoring the Database Dump**:
-   - In the VESA repository, there is a directory named `DB` containing the file `arango-dump.zip`.
-   - Unzip the `arango-dump.zip` file:
+    ```bash
+    cd vesa2
+    ```
 
-     ```bash
-     unzip DB/arango-dump.zip -d DB/arango-dump/
-     ```
+3. **Start the Application:**
 
-   - Use the ArangoDB `arangorestore` command to restore the database:
+    ```bash
+    docker compose up --build
+    ```
 
-     ```bash
-     arangorestore --server.endpoint http+tcp://127.0.0.1:8529 --server.database <database-name> --server.username root --server.password root --input-directory DB/arango-dump/
-     ```
+Docker will build and start all three services in the correct order (ArangoDB → Backend → Frontend).
 
-     Replace `<database-name>` with the name you want for your database.
+| Service  | URL                    |
+|----------|------------------------|
+| Frontend | http://localhost:3000  |
+| Backend  | http://localhost:5000  |
+| ArangoDB | http://localhost:8529  |
 
-### 3. Setting Up the Backend
+ArangoDB credentials: `root` / `root`
 
-The backend is built using Node.js and connects to the ArangoDB database.
+> 💡 **TIP**
+> To stop the application run `docker compose down`. To also remove the database volume run `docker compose down --volumes`.
 
-1. **Navigate to the Backend Directory**:
+## 🔌 Connecting a Data Source
+
+On first run the database is empty. VESA2 ingests data through a local proxy API that fetches records from an external source and transforms them into the [VESA Data Adapter (`IDataAdapter`)](BACKEND/src/ingestion/contracts/IDataAdapter.ts) contract. The built-in proxies for PANGAEA and GBIF are ready-to-use examples and starting points for custom sources:
+
+- [`BACKEND/src/proxy/pangaeaProxy.ts`](BACKEND/src/proxy/pangaeaProxy.ts)
+- [`BACKEND/src/proxy/gbifProxy.ts`](BACKEND/src/proxy/gbifProxy.ts)
+
+Once a proxy is running, use the **Setup** page in the frontend to ingest data:
+
+1. Open http://localhost:3000 and navigate to **Setup**
+2. Enter the proxy URL, a source prefix, batch size, and record limit
+3. Click **Validate** — the system fetches one record to verify the [`IDataAdapter`](BACKEND/src/ingestion/contracts/IDataAdapter.ts) schema
+4. Click **Start Sync** — data is ingested in batches into the local graph
+5. Once complete, the main dashboard is populated and ready to explore
+
+> 💡 **TIP**
+> Any proxy that returns the [VESA Data Adapter (`IDataAdapter`)](BACKEND/src/ingestion/contracts/IDataAdapter.ts) schema integrates without any backend changes.
+
+## 🏃 Running Without Docker (Local Development)
+
+- **Run Backend:**
 
     ```bash
     cd BACKEND
-    ```
-
-2. **Install Dependencies**:
-
-    ```bash
+    cp .env.template .env
     npm install
-    ```
-
-3. **Create the `.env` File**:
-   - The backend requires environment variables to be configured. You can use the `.env.template` file as a starting point.
-   - Copy the `.env.template` file to create a `.env` file:
-
-     ```bash
-     cp .env.template .env
-     ```
-
-   - Open the `.env` file in a text editor and set the values for `ARANGO_URL`, `ARANGO_USER`, and `ARANGO_PASS`:
-
-     ```env
-     ARANGO_URL=http://127.0.0.1:8529/
-     ARANGO_USER=root
-     ARANGO_PASS=root
-     ```
-
-4. **Run the Backend**:
-
-    ```bash
     npm run dev
     ```
 
-    This command will start the backend server in development mode. The server will automatically reload if you make any changes to the source files.
+    Before running, open the `.env` file and set `ARANGO_URL`, `ARANGO_DB_NAME`, `ARANGO_USER`, and `ARANGO_PASS`.
 
-### 4. Setting Up the Frontend
-
-The frontend is built using React.js and communicates with the backend to fetch data and display it through various visualizations.
-
-1. **Navigate to the Frontend Directory**:
+- **Run Frontend:**
 
     ```bash
-    cd ../FRONTEND
-    ```
-
-2. **Install Dependencies**:
-
-    ```bash
+    cd FRONTEND
+    cp .env.template .env
     npm install
-    ```
-
-3. **Create the `.env` File**:
-   - The frontend also requires some environment variables, particularly the API URL.
-   - Copy the `.env.template` file to create a `.env` file:
-
-     ```bash
-     cp .env.template .env
-     ```
-
-   - Open the `.env` file in a text editor and set the value for `REACT_APP_API_URL`:
-
-     ```env
-     REACT_APP_API_URL=http://127.0.0.1:3001
-     ```
-
-   - Ensure this URL points to where your backend is running.
-
-4. **Run the Frontend**:
-
-    ```bash
     npm start
     ```
 
-    This command will start the frontend development server. It will be accessible in your web browser at `http://localhost:3000/` by default.
+    Before running, open the `.env` file and set `VITE_API_URL` to point to your running backend.
 
-### 5. Final Steps
+## 🤝 How to Contribute
 
-Now that both the backend and frontend are running, you can interact with the VESA application by navigating to `http://localhost:3000/` in your web browser.
+Whenever you encounter a 🐛 bug or have a 💡 feature request, report this via GitHub issues.
 
-- **Backend** runs on port `3001` (or the port specified in your `.env` file).
-- **Frontend** runs on port `3000`.
+We are happy to receive contributions to VESA2 in the form of pull requests via GitHub. Feel free to fork the repository, implement your changes and create a pull request to the develop branch.
 
-Ensure that both components are communicating correctly by verifying that the frontend is successfully retrieving and displaying data from the backend.
+> 💡 **Further info about Contribution**
+> Please refer to [CONTRIBUTING.md](/CONTRIBUTING.md)
 
-### 6. Troubleshooting
+## 📚 Further Documentation
 
-If you encounter any issues during setup:
+An overview of where documentation can be found is available in the [docs](/docs/) directory.
 
-- **ArangoDB**: Check the [official documentation](https://www.arangodb.com/docs/stable/) for troubleshooting common problems.
-- **Node.js/NPM**: Ensure you are using the correct versions by running `node -v` and `npm -v`.
-- **Logs**: Check the terminal/console logs for any error messages and refer to the error documentation.
+## 📜 Contributor Covenant Code of Conduct
+
+### Our Pledge
+In the interest of an open and welcoming environment, we as contributors and maintainers pledge to making participation in our project and our community a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+
+Read further about the Code of Conduct [here](/CODE_OF_CONDUCT.md).
+
+## ✅ REUSE Compliance
+
+Either set up an automatic system to add REUSE compliant licensing to each file or add them manually for new files. Make sure to add checks to the code review to verify REUSE compliance.

@@ -104,7 +104,7 @@ const MOCK_FIXTURE: IDataAdapter = {
   keywords: [{ id: "gbif_mock_keyword", name: "validation" }]
 };
 
-const GBIF_HEADERS = { 'User-Agent': 'VESA-Harvester-Bot (contact: h.malikathazham@dlr.de)' };
+const GBIF_HEADERS = { 'User-Agent': 'VESA-Harvester-Bot' };
 const GBIF_TIMEOUT_MS = 45_000;
 const GBIF_RETRY_DELAYS_MS = [8_000, 20_000]; // Two retries before giving up
 

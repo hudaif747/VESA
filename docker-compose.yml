@@ -1,45 +1,43 @@
 version: '3.8'
 
 services:
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        - VITE_API_URL=http://localhost:5000
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    networks:
-      - app-network
-    environment:
-      - VITE_API_URL=http://localhost:5000
-
-  backend:
-    build:
-      context: ./backend
-    ports:
-      - "5000:5000"
-    environment:
-      - ARANGO_URL=http://arangodb:8529
-      - ARANGO_DB_NAME=
-      - ARANGO_USER=root
-      - ARANGO_PASS=root
-      - NODE_PORT=5000
-    depends_on:
-      - arangodb
-    restart: on-failure
-    networks:
-      - app-network
-
   arangodb:
     image: arangodb:latest
     ports:
       - "8529:8529"
     environment:
-      - ARANGO_ROOT_PASSWORD=root
+      ARANGO_ROOT_PASSWORD: root
     volumes:
       - vesa_arango_data:/var/lib/arangodb3
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./BACKEND
+    ports:
+      - "5000:5000"
+    environment:
+      ARANGO_URL: http://arangodb:8529
+      ARANGO_DB_NAME: vesa2db
+      ARANGO_USER: root
+      ARANGO_PASS: root
+      NODE_PORT: 5000
+    depends_on:
+      - arangodb
+    networks:
+      - app-network
+    restart: on-failure
+
+  frontend:
+    build:
+      context: ./FRONTEND
+      args:
+        VITE_API_URL: http://localhost:5000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
     networks:
       - app-network
 

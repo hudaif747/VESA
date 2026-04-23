@@ -114,7 +114,7 @@ const IngestionPage: React.FC = () => {
 						)}
 						{activeStep === 1 && (
 							<Box sx={{ width: '100%' }}>
-								<SyncControl status={syncStatus || {}} config={config || { url: '', prefix: '', limit: 0, color: '#543CF0' }} />
+								<SyncControl status={syncStatus || {}} config={config || { url: '', prefix: '', limit: 0, color: '#543CF0', batchDelay: 0 }} />
 								<Button 
 									sx={{ mt: 3, alignSelf: 'flex-start', textTransform: 'none' }} 
 									color="error"
