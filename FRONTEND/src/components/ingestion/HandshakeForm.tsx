@@ -1,20 +1,28 @@
 import React, { useState } from 'react';
-import { Box, TextField, Typography, Alert, Button, CircularProgress, Stack, useTheme, AlertTitle, Checkbox, FormControlLabel, Tooltip } from '@mui/material';
+import { Box, TextField, Typography, Alert, Button, CircularProgress, Stack, useTheme, AlertTitle, Checkbox, FormControlLabel, Tooltip, Chip, Divider, InputAdornment } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
+import LockIcon from '@mui/icons-material/Lock';
 import { useValidateUrlMutation } from '../../store/services/syncApi';
+
+const BASE_URL = (import.meta.env.VITE_API_URL as string) || '';
+
+const PRESETS = [
+  { id: 'pangaea', label: 'PANGAEA', path: '/pangaea/records', prefix: 'pangaea', limit: 500, batchDelay: 1 },
+  { id: 'gbif',    label: 'GBIF',    path: '/gbif/records',    prefix: 'gbif',    limit: 500, batchDelay: 5 },
+] as const;
 
 // amCharts 5 default series color palette
 const PALETTE = [
   '#543CF0', // VESA primary
-  '#67b7dc',
-  '#6794dc',
-  '#8067dc',
-  '#ae67dc',
-  '#dc67ce',
-  '#dc6788',
-  '#dc8c67',
-  '#dcb967',
-  '#67dc94',
+  '#45a1cd',
+  '#4a7edc',
+  '#6b52ce',
+  '#9a4bd6',
+  '#ce46be',
+  '#ce426a',
+  '#cc7045',
+  '#c4a03c',
+  '#42c176',
 ];
 
 interface HandshakeFormProps {
@@ -30,7 +38,24 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
   const [color, setColor] = useState(PALETTE[0]);
   const [batchDelay, setBatchDelay] = useState(1);
   const [overwrite, setOverwrite] = useState(false);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [validateUrl, { isLoading, error }] = useValidateUrlMutation();
+
+  const handlePreset = (preset: typeof PRESETS[number]) => {
+    if (activePreset === preset.id) {
+      setActivePreset(null);
+      setUrl('');
+      setPrefix('');
+      setLimit(1000);
+      setBatchDelay(1);
+    } else {
+      setActivePreset(preset.id);
+      setUrl(`${BASE_URL}${preset.path}`);
+      setPrefix(preset.prefix);
+      setLimit(preset.limit);
+      setBatchDelay(preset.batchDelay);
+    }
+  };
 
   const err = error as any;
   const isConflict = err?.status === 409;
@@ -58,13 +83,54 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
         </Typography>
       )}
 
+      <Box>
+        <Typography variant="caption" color="text.disabled" display="block" sx={{ mb: 1 }}>
+          Built-in proxies
+        </Typography>
+        <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+          {PRESETS.map((preset) => (
+            <Chip
+              key={preset.id}
+              label={preset.label}
+              onClick={() => !isLoading && !isSystemBusy && handlePreset(preset)}
+              variant={activePreset === preset.id ? 'filled' : 'outlined'}
+              color={activePreset === preset.id ? 'primary' : 'default'}
+              size="small"
+              disabled={isLoading || isSystemBusy}
+            />
+          ))}
+        </Stack>
+        <Typography variant="caption" color="text.disabled">
+          External APIs like PANGAEA and GBIF return data in their own formats. The built-in proxies translate those responses into the VESA Data Adapter schema that the ingestion pipeline expects. Select a preset to auto-fill the endpoint and recommended settings for that source.
+        </Typography>
+      </Box>
+
+      <Divider />
+
       <TextField
         fullWidth
         label="API Endpoint URL"
         variant="outlined"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        disabled={isLoading || isSystemBusy}
+        value={activePreset ? PRESETS.find(p => p.id === activePreset)!.path : url}
+        onChange={(e) => { setActivePreset(null); setUrl(e.target.value); }}
+        disabled={isLoading || isSystemBusy || !!activePreset}
+        InputProps={activePreset ? {
+          startAdornment: (
+            <InputAdornment position="start">
+              <Chip
+                label={PRESETS.find(p => p.id === activePreset)!.label}
+                size="small"
+                color="primary"
+                sx={{ fontWeight: 600, letterSpacing: 0.3 }}
+              />
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <Tooltip title="URL is managed by the built-in proxy. Deselect the preset to enter a custom endpoint.">
+              <LockIcon fontSize="small" sx={{ color: 'text.disabled' }} />
+            </Tooltip>
+          ),
+        } : undefined}
       />
 
       <Box sx={{ display: 'flex', gap: theme.spacing(2) }}>
