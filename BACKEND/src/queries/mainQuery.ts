@@ -27,7 +27,7 @@ import { AQLQuery } from "../types/types";
       authors ?: string[], // This is only for PANGAEA
       providers ?: string[], // This is only for STAC
       dataset_title : string
-      organization : string
+      dataset_source_prefix : string
     }
 */
 
@@ -75,6 +75,6 @@ FOR dataset IN DOCUMENT(validDatasets)
         },
         authors: authorNameList,
         dataset_title: dataset.title,
-        organization: dataset.source != null ? dataset.source : 'PANGAEA'
+        dataset_source_prefix: dataset.source_prefix != null ? dataset.source_prefix : 'NO_SOURCE_PREFIX_AVAILABLE'
     }
 `;

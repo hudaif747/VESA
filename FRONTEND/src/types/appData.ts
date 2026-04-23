@@ -144,7 +144,7 @@ export interface IDataset {
   authors?: IAuthor[];
   providers?: IProvider[];
   dataset_title: ITitle;
-  organization: "PANGAEA" | "Earth Observatory";
+  dataset_source_prefix: string;
 }
 
 //Dataset attributes

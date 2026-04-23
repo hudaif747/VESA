@@ -61,8 +61,8 @@ export interface IDataset {
   providers?: string[];
   /** Human-readable title of the dataset */
   dataset_title: string | null;
-  /** Source organization/repository name (e.g., "PANGAEA", "GBIF", "OpenAlex") */
-  organization: string;
+  /** Source dataset prefix/repository name (e.g., "PANGAEA", "GBIF", "OpenAlex") */
+  dataset_source_prefix: string;
 }
 
 /**
