@@ -23,22 +23,13 @@ export const extractGeoData = (datasets: IDataset[]): IGeoData[] => {
     );
   };
 
-  const getGroupId = (datasetID: IDatasetID) => {
-    if (datasetID.startsWith("Dataset")) {
-      return "dataset";
-    } else if (datasetID.startsWith("STACCollection")) {
-      return "staccollection";
-    }
-    return "dataset";
-  };
-
   return datasets.filter(hasValidLocation).map((dataset) => ({
     id: dataset.id,
     coordinates: [
       dataset.location_data.mean_longitude,
       dataset.location_data.mean_latitude,
     ],
-    groupId: getGroupId(dataset.id),
+    groupId: dataset.dataset_source_prefix,
   }));
 };
 

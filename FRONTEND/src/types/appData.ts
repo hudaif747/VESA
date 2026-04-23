@@ -171,7 +171,7 @@ export interface IGeoData {
     lat: LocationData["mean_latitude"],
     lon: LocationData["mean_longitude"]
   ];
-  groupId: "dataset" | "staccollection" | "active";
+  groupId: string;
 }
 
 export interface ITransformedTimeData {

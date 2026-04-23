@@ -3,8 +3,9 @@ import * as am5geodata_worldLow from "@amcharts/amcharts5-geodata/worldLow";
 import { IClusteredDataItem } from "@amcharts/amcharts5/.internal/charts/map/ClusteredPointSeries";
 import * as am5map from "@amcharts/amcharts5/map";
 import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { IDatasetID, IGeoData, IPointHoverHandler } from "types/appData";
+import { useGetSyncHistoryQuery } from "../store/services/syncApi";
 
 interface IGeoChartProps {
   data: IGeoData[];
@@ -14,24 +15,25 @@ interface IGeoChartProps {
 }
 
 interface GeoDataItem {
-  geometry: { type: "Point"; coordinates: [`${number}` | null, `${number}`  | null] };
+  geometry: { type: "Point"; coordinates: [`${number}` | null, `${number}` | null] };
   id: IDatasetID;
   groupId: string;
 }
 
-const LegendToggleIconSvgPath = "M7 4v16h12";
+type SourceColor = { prefix: string; color: string };
 
-function getColorByGroupId(groupId: string): am5.Color {
-  switch (groupId) {
-    case "staccollection":
-      return am5.color(0x8c00ff);
-    case "dataset":
-      return am5.color(0xff8c00);
-    case "active":
-      return am5.color(0xed254e);
-    default:
-      return am5.color(0x999998); // Neutral color
-  }
+const LegendToggleIconSvgPath = "M7 4v16h12";
+const FALLBACK_DATASET_COLOR = "#ff8c00";
+const ACTIVE_COLOR = 0xed254e;
+
+function hexToAmColor(hex: string): am5.Color {
+  return am5.color(parseInt(hex.replace("#", ""), 16));
+}
+
+function resolveGroupColor(groupId: string, sourceColors: SourceColor[]): am5.Color {
+  if (groupId === "active") return am5.color(ACTIVE_COLOR);
+  const source = sourceColors.find((s) => s.prefix === groupId);
+  return hexToAmColor(source?.color ?? FALLBACK_DATASET_COLOR);
 }
 
 const GeoChart: React.FC<IGeoChartProps> = ({
@@ -47,6 +49,22 @@ const GeoChart: React.FC<IGeoChartProps> = ({
   const legendRef = useRef<am5.Legend | null>(null);
   const selectedLegendRef = useRef<am5.Legend | null>(null);
 
+  const { data: historyData } = useGetSyncHistoryQuery();
+  const sources: SourceColor[] = useMemo(
+    () =>
+      (historyData?.result ?? []).map((s) => ({
+        prefix: s.prefix,
+        color: s.ui_config?.color ?? FALLBACK_DATASET_COLOR,
+      })),
+    [historyData]
+  );
+
+  // Stable ref so amCharts callbacks always read the latest colors without stale closures
+  const sourceColorRef = useRef<SourceColor[]>(sources);
+  useEffect(() => {
+    sourceColorRef.current = sources;
+  }, [sources]);
+
   // Map incoming data to geoData format
   useEffect(() => {
     const geoJSONData: GeoDataItem[] = data.map((item) => ({
@@ -54,64 +72,63 @@ const GeoChart: React.FC<IGeoChartProps> = ({
       id: item.id,
       groupId: selectedIDs.includes(item.id) ? "active" : item.groupId,
     }));
-
     setGeoData(geoJSONData);
   }, [data, selectedIDs]);
 
-  // Initialize the chart
+  // Initialize the chart once
   useEffect(() => {
     const root = am5.Root.new("map-chart");
     root.setThemes([am5themes_Animated.new(root)]);
 
-    const chart = createChart(root);
-    setChart(chart);
+    const mapChart = createChart(root);
+    setChart(mapChart);
 
-    const zoomControl = createZoomControl(root, chart, setToggleLegend);
-    chart.set("zoomControl", zoomControl);
+    const zoomControl = createZoomControl(root, mapChart, setToggleLegend);
+    mapChart.set("zoomControl", zoomControl);
 
-    createMapPolygonSeries(root, chart);
-    const pointSeries = createPointSeries(
-      root,
-      chart,
-      selectedCoordinate,
-      onPointHover
-    );
+    createMapPolygonSeries(root, mapChart);
+    createPointSeries(root, mapChart, selectedCoordinate, onPointHover, sourceColorRef);
+    createLegends(root, mapChart, legendRef, selectedLegendRef);
 
-    createLegends(root, chart, legendRef, selectedLegendRef);
-
-    // Clean up on unmount
-    return () => {
-      root.dispose();
-    };
+    return () => root.dispose();
   }, []);
+
+  // Update legend entries whenever source list changes
+  useEffect(() => {
+    if (!legendRef.current) return;
+    const entries = sources.length > 0
+      ? sources.map((s) => ({ name: s.prefix, color: hexToAmColor(s.color) }))
+      : [{ name: "Datasets", color: hexToAmColor(FALLBACK_DATASET_COLOR) }];
+    legendRef.current.data.setAll(entries);
+  }, [sources]);
+
+  // Re-paint bullets when source colors change (re-set same geoData to trigger bullet recreation)
+  useEffect(() => {
+    if (!chart || geoData.length === 0) return;
+    const pointSeries = chart.series.values.find(
+      (s) => s instanceof am5map.ClusteredPointSeries
+    ) as am5map.ClusteredPointSeries | undefined;
+    pointSeries?.data.setAll(geoData);
+  }, [sources]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update legend visibility when selectedIDs or toggleLegend changes
   useEffect(() => {
     if (selectedLegendRef.current) {
-      selectedLegendRef.current.set(
-        "visible",
-        toggleLegend && selectedIDs.length > 0
-      );
+      selectedLegendRef.current.set("visible", toggleLegend && selectedIDs.length > 0);
     }
   }, [selectedIDs, toggleLegend]);
 
   useEffect(() => {
-    if (legendRef.current) {
-      legendRef.current.set("visible", toggleLegend);
-    }
+    if (legendRef.current) legendRef.current.set("visible", toggleLegend);
   }, [toggleLegend]);
 
   // Update pointSeries data when geoData changes
   useEffect(() => {
-    if (chart) {
-      const pointSeries = chart.series.values.find(
-        (series) => series instanceof am5map.ClusteredPointSeries
-      ) as am5map.ClusteredPointSeries;
-
-      if (pointSeries) {
-        pointSeries.data.setAll(geoData);
-      }
-    }
+    if (!chart) return;
+    const pointSeries = chart.series.values.find(
+      (s) => s instanceof am5map.ClusteredPointSeries
+    ) as am5map.ClusteredPointSeries | undefined;
+    pointSeries?.data.setAll(geoData);
   }, [geoData, chart]);
 
   return <div id="map-chart" className="chart_div"></div>;
@@ -119,7 +136,7 @@ const GeoChart: React.FC<IGeoChartProps> = ({
 
 export default GeoChart;
 
-// Helper Functions
+// ── Helper functions ──────────────────────────────────────────────────────────
 
 function createChart(root: am5.Root): am5map.MapChart {
   return root.container.children.push(
@@ -140,18 +157,14 @@ function createZoomControl(
   const zoomControl = am5map.ZoomControl.new(root, {});
 
   const tooltip = am5.Tooltip.new(root, { dy: -15 });
-  tooltip.get("background")?.setAll({
-    fill: am5.color(0xeeeeee),
-  });
+  tooltip.get("background")?.setAll({ fill: am5.color(0xeeeeee) });
 
   zoomControl.minusButton.set("tooltip", tooltip);
   zoomControl.plusButton.set("tooltip", tooltip);
   zoomControl.homeButton.set("tooltip", tooltip);
-
   zoomControl.minusButton.set("tooltipText", "Zoom Out");
   zoomControl.plusButton.set("tooltipText", "Zoom In");
   zoomControl.homeButton.set("tooltipText", "Reset Zoom");
-
   zoomControl.homeButton.set("visible", true);
 
   const legendButton = createLegendButton(root, setToggleLegend, tooltip);
@@ -177,22 +190,17 @@ function createLegendButton(
       x: 5,
       y: 5,
     }),
-    tooltip: tooltip,
+    tooltip,
     tooltipText: "Toggle map legends",
   });
 
-  legendButton.events.on("click", () => {
-    setToggleLegend((prev) => !prev);
-  });
-
+  legendButton.events.on("click", () => setToggleLegend((prev) => !prev));
   return legendButton;
 }
 
 function createMapPolygonSeries(root: am5.Root, chart: am5map.MapChart) {
   chart.series.push(
-    am5map.MapPolygonSeries.new(root, {
-      geoJSON: am5geodata_worldLow.default,
-    })
+    am5map.MapPolygonSeries.new(root, { geoJSON: am5geodata_worldLow.default })
   );
 }
 
@@ -200,22 +208,23 @@ function createPointSeries(
   root: am5.Root,
   chart: am5map.MapChart,
   selectedCoordinate: (id: IDatasetID) => void,
-  onPointHover: IPointHoverHandler
+  onPointHover: IPointHoverHandler,
+  sourceColorRef: React.MutableRefObject<SourceColor[]>
 ): am5map.ClusteredPointSeries {
   const pointSeries = chart.series.push(
     am5map.ClusteredPointSeries.new(root, {
       groupIdField: "groupId",
       minDistance: 15,
-      affectsBounds:true,
+      affectsBounds: true,
     })
   );
 
   pointSeries.set("clusteredBullet", (root, series, dataItem) =>
-    createClusteredBullet(root, series, dataItem)
+    createClusteredBullet(root, series, dataItem, sourceColorRef)
   );
 
-  pointSeries.bullets.push((root, series, dataItem) =>
-    createBullet(root, dataItem, selectedCoordinate, onPointHover)
+  pointSeries.bullets.push((root, _series, dataItem) =>
+    createBullet(root, dataItem, selectedCoordinate, onPointHover, sourceColorRef)
   );
 
   return pointSeries;
@@ -224,72 +233,49 @@ function createPointSeries(
 function createClusteredBullet(
   root: am5.Root,
   series: am5map.ClusteredPointSeries,
-  dataItem:  am5.DataItem<IClusteredDataItem>
+  dataItem: am5.DataItem<IClusteredDataItem>,
+  sourceColorRef: React.MutableRefObject<SourceColor[]>
 ): am5.Bullet {
-  const container = am5.Container.new(root, {
-    cursorOverStyle: "pointer",
-  });
+  const container = am5.Container.new(root, { cursorOverStyle: "pointer" });
 
-  // Add circles
+  const defaultColor = resolveGroupColor("dataset", sourceColorRef.current);
+
   const circle1 = container.children.push(
-    am5.Circle.new(root, {
-      radius: 8,
-      tooltipY: 0,
-      fill: am5.color(0xff8c00), // Default color
-    })
+    am5.Circle.new(root, { radius: 8, tooltipY: 0, fill: defaultColor })
   );
-
   const circle2 = container.children.push(
-    am5.Circle.new(root, {
-      radius: 12,
-      fillOpacity: 0.3,
-      tooltipY: 0,
-      fill: am5.color(0xff8c00), // Default color
-    })
+    am5.Circle.new(root, { radius: 12, fillOpacity: 0.3, tooltipY: 0, fill: defaultColor })
   );
-
   const circle3 = container.children.push(
-    am5.Circle.new(root, {
-      radius: 16,
-      fillOpacity: 0.3,
-      tooltipY: 0,
-      fill: am5.color(0xff8c00), // Default color
-    })
+    am5.Circle.new(root, { radius: 16, fillOpacity: 0.3, tooltipY: 0, fill: defaultColor })
   );
 
-  // Update cluster color based on children's groupId
   dataItem.on("children", (children, target) => {
-    if (target) {
-      const bullet = target.get("bullet")?.get("sprite");
-      if (children && children.length) {
-        let color: am5.Color;
-        let sameGroupId = true;
-        let groupId: string | undefined;
+    if (!target) return;
+    const bullet = target.get("bullet")?.get("sprite");
+    if (!children?.length) return;
 
-        am5.array.eachContinue(children, (child) => {
-          const dataContext = child.dataContext as { groupId: string };
-          if (!dataContext) return true;
-          if (groupId === undefined) {
-            groupId = dataContext.groupId;
-          } else if (groupId !== dataContext.groupId) {
-            sameGroupId = false;
-            return false; // Stop iteration
-          }
-          return true;
-        });
+    let groupId: string | undefined;
+    let sameGroup = true;
 
-        color = sameGroupId && groupId ? getColorByGroupId(groupId) : am5.color(0x999998);
-        //@ts-ignore
-        bullet?.children.each((circle) => {
-          if (circle instanceof am5.Circle) {
-            circle.setAll({ fill: color });
-          }
-        });
-      }
-    }
+    am5.array.eachContinue(children, (child) => {
+      const ctx = child.dataContext as { groupId: string };
+      if (!ctx) return true;
+      if (groupId === undefined) { groupId = ctx.groupId; }
+      else if (groupId !== ctx.groupId) { sameGroup = false; return false; }
+      return true;
+    });
+
+    const color = sameGroup && groupId
+      ? resolveGroupColor(groupId, sourceColorRef.current)
+      : am5.color(0x999998);
+
+    // @ts-ignore
+    bullet?.children.each((c) => {
+      if (c instanceof am5.Circle) c.setAll({ fill: color });
+    });
   });
 
-  // Add label
   container.children.push(
     am5.Label.new(root, {
       centerX: am5.p50,
@@ -305,23 +291,22 @@ function createClusteredBullet(
     if (e.target.dataItem) series.zoomToCluster(e.target.dataItem);
   });
 
-  return am5.Bullet.new(root, {
-    sprite: container,
-  });
+  return am5.Bullet.new(root, { sprite: container });
 }
 
 function createBullet(
   root: am5.Root,
   dataItem: am5.DataItem<am5map.IClusteredPointSeriesDataItem>,
   selectedCoordinate: (id: IDatasetID) => void,
-  onPointHover: IPointHoverHandler
+  onPointHover: IPointHoverHandler,
+  sourceColorRef: React.MutableRefObject<SourceColor[]>
 ): am5.Bullet {
   const item = dataItem.dataContext as GeoDataItem;
   const coordinates = dataItem.get("geometry")?.coordinates as [number, number];
-
   const lat = coordinates[1].toFixed(2);
   const lon = coordinates[0].toFixed(2);
-  const color = getColorByGroupId(item.groupId);
+
+  const color = resolveGroupColor(item.groupId, sourceColorRef.current);
 
   const circle = am5.Circle.new(root, {
     radius: 6,
@@ -330,27 +315,11 @@ function createBullet(
     toggleKey: "active",
   });
 
-  circle.events.on("click", () => {
-    selectedCoordinate(item.id);
-  });
-
-  circle.events.on("pointerover", () => {
-    onPointHover(lat, lon);
-  });
-
-  circle.events.on("pointerout", () => {
-    onPointHover("", "");
-  });
-
-  circle.states.create("hover", {
-    scale: 1.4,
-  });
-
-  circle.states.create("active", {
-    fill: am5.color(0xed254e),
-    scale: 1.3,
-  });
-
+  circle.events.on("click", () => selectedCoordinate(item.id));
+  circle.events.on("pointerover", () => onPointHover(lat, lon));
+  circle.events.on("pointerout", () => onPointHover("", ""));
+  circle.states.create("hover", { scale: 1.4 });
+  circle.states.create("active", { fill: am5.color(ACTIVE_COLOR), scale: 1.3 });
   circle.set("active", item.groupId === "active");
 
   return am5.Bullet.new(root, { sprite: circle });
@@ -362,7 +331,6 @@ function createLegends(
   legendRef: React.MutableRefObject<am5.Legend | null>,
   selectedLegendRef: React.MutableRefObject<am5.Legend | null>
 ) {
-  // Main legend
   const legend = chart.children.push(
     am5.Legend.new(root, {
       nameField: "name",
@@ -374,26 +342,9 @@ function createLegends(
     })
   );
 
-  legend.data.setAll([
-    // {
-    //   name: "Earth Observatory Datasets",
-    //   color: am5.color(0x8c00ff),
-    // },
-    {
-      name: "Pangaea Datasets",
-      color: am5.color(0xff8c00),
-    },
-  ]);
-
-  legend.labels.template.setAll({
-    fontSize: "12px",
-    fontWeight: "400",
-    textAlign: "left",
-  });
-
+  legend.labels.template.setAll({ fontSize: "12px", fontWeight: "400", textAlign: "left" });
   legendRef.current = legend;
 
-  // Selected legend
   const selectedLegend = chart.children.push(
     am5.Legend.new(root, {
       nameField: "name",
@@ -405,19 +356,8 @@ function createLegends(
     })
   );
 
-  selectedLegend.data.setAll([
-    {
-      name: "Selected",
-      color: am5.color(0xed254e),
-    },
-  ]);
-
-  selectedLegend.labels.template.setAll({
-    fontSize: "12px",
-    fontWeight: "400",
-    textAlign: "right",
-  });
-
+  selectedLegend.data.setAll([{ name: "Selected", color: am5.color(ACTIVE_COLOR) }]);
+  selectedLegend.labels.template.setAll({ fontSize: "12px", fontWeight: "400", textAlign: "right" });
   selectedLegend.set("visible", false);
   selectedLegendRef.current = selectedLegend;
 }
