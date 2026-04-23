@@ -9,7 +9,7 @@ Repository for the Visualisation Enabled Search Application. It is a visual expl
 [[_TOC_]]
 
 ## ✨ Features
-You can find a list of the latest changes in the [CHANGELOG]()
+You can find a list of the latest changes in the [CHANGELOG](CHANGELOG.md)
 
 ## 📋 Prerequisites
 
