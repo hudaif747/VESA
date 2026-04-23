@@ -18,7 +18,7 @@ const PALETTE = [
 ];
 
 interface HandshakeFormProps {
-  onValidated: (config: { url: string; prefix: string; limit: number; color: string; overwrite?: boolean }) => void;
+  onValidated: (config: { url: string; prefix: string; limit: number; color: string; batchDelay: number; overwrite?: boolean }) => void;
   isSystemBusy?: boolean;
 }
 
@@ -28,6 +28,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
   const [prefix, setPrefix] = useState('');
   const [limit, setLimit] = useState(1000);
   const [color, setColor] = useState(PALETTE[0]);
+  const [batchDelay, setBatchDelay] = useState(1);
   const [overwrite, setOverwrite] = useState(false);
   const [validateUrl, { isLoading, error }] = useValidateUrlMutation();
 
@@ -38,7 +39,7 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
   const handleValidate = async () => {
     try {
       const response = await validateUrl({ target_url: url, dataset_id: prefix, overwrite }).unwrap();
-      if (response.valid) onValidated({ url, prefix, limit, color, overwrite });
+      if (response.valid) onValidated({ url, prefix, limit, color, batchDelay: batchDelay * 1000, overwrite });
     } catch {
       // Error state is automatically captured by RTK Query's 'error' object
     }
@@ -82,9 +83,21 @@ const HandshakeForm: React.FC<HandshakeFormProps> = ({ onValidated, isSystemBusy
           variant="outlined"
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
-          sx={{ width: 140 }}
+          sx={{ width: 120 }}
           disabled={isLoading || isSystemBusy}
         />
+        <Tooltip title="Seconds to wait between page requests." placement="top">
+          <TextField
+            type="number"
+            label="Batch Delay (s)"
+            variant="outlined"
+            value={batchDelay}
+            onChange={(e) => setBatchDelay(Math.max(0, Number(e.target.value)))}
+            inputProps={{ min: 0 }}
+            sx={{ width: 140 }}
+            disabled={isLoading || isSystemBusy}
+          />
+        </Tooltip>
       </Box>
 
       {/* Source colour — drives the accent in ConnectedSources and chart series */}

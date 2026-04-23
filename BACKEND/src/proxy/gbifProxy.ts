@@ -104,6 +104,30 @@ const MOCK_FIXTURE: IDataAdapter = {
   keywords: [{ id: "gbif_mock_keyword", name: "validation" }]
 };
 
+const GBIF_HEADERS = { 'User-Agent': 'VESA-Harvester-Bot (contact: h.malikathazham@dlr.de)' };
+const GBIF_TIMEOUT_MS = 45_000;
+const GBIF_RETRY_DELAYS_MS = [8_000, 20_000]; // Two retries before giving up
+
+async function fetchGbifWithBackoff(url: string): Promise<string> {
+  let lastError: any;
+  for (let attempt = 0; attempt <= GBIF_RETRY_DELAYS_MS.length; attempt++) {
+    try {
+      const { data } = await axios.get<string>(url, { headers: GBIF_HEADERS, timeout: GBIF_TIMEOUT_MS });
+      return data;
+    } catch (err: any) {
+      lastError = err;
+      const status = err.response?.status;
+      // Only retry on rate limiting or transient server errors; bail immediately on client errors.
+      const isTransient = !status || status === 429 || status >= 500;
+      if (!isTransient || attempt === GBIF_RETRY_DELAYS_MS.length) break;
+      const waitMs = GBIF_RETRY_DELAYS_MS[attempt];
+      console.warn(`\x1b[33m[GBIFProxy] GBIF returned ${status ?? 'network error'}, retrying in ${waitMs / 1000}s (attempt ${attempt + 1}/${GBIF_RETRY_DELAYS_MS.length})...\x1b[0m`);
+      await new Promise(r => setTimeout(r, waitMs));
+    }
+  }
+  throw lastError;
+}
+
 // --- GET Endpoint for Records ---
 gbifProxyRouter.get('/records', async (req: Request, res: Response): Promise<void> => {
   try {
@@ -118,12 +142,20 @@ gbifProxyRouter.get('/records', async (req: Request, res: Response): Promise<voi
       ? `${OAI_BASE}?verb=ListRecords&resumptionToken=${encodeURIComponent(token)}`
       : `${OAI_BASE}?verb=ListRecords&metadataPrefix=eml`;
 
-    const { data } = await axios.get(url, {
-      headers: { 'User-Agent': 'VESA-Harvester-Bot (contact: your-email@tu-bs.de)' }
-    });
-    
+    const data = await fetchGbifWithBackoff(url);
     const jsonObj = parser.parse(data);
-    const listRecords = jsonObj["OAI-PMH"]?.ListRecords;
+    const oai = jsonObj["OAI-PMH"];
+
+    // OAI-PMH protocol returns errors as XML inside a 200 response — detect and surface them.
+    if (oai?.error) {
+      const code = oai.error?.code || 'unknown';
+      const message = typeof oai.error === 'string' ? oai.error : (oai.error?.['#text'] || 'OAI-PMH error');
+      console.error(`\x1b[31m[GBIFProxy] OAI-PMH error: [${code}] ${message}\x1b[0m`);
+      res.status(502).json({ error: `GBIF OAI-PMH error (${code}): ${message}` });
+      return;
+    }
+
+    const listRecords = oai?.ListRecords;
 
     if (!listRecords || !listRecords.record) {
       res.json([]);
@@ -147,7 +179,7 @@ gbifProxyRouter.get('/records', async (req: Request, res: Response): Promise<voi
 
     const rawToken = listRecords.resumptionToken;
     const nextToken = rawToken ? (typeof rawToken === "object" ? rawToken["#text"] : rawToken) : null;
-    
+
     if (nextToken) res.set('X-Next-Token', nextToken);
 
     res.json(output);

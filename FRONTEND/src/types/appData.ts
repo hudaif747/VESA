@@ -233,6 +233,7 @@ export interface ISyncStartRequest {
   batch_size?: number;
   total_limit?: number;
   overwrite?: boolean;
+  inter_batch_sleep_ms?: number;
   ui_config?: Record<string, any>;
 }
 

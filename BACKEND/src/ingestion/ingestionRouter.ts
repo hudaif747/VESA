@@ -49,14 +49,14 @@ export const getIngestionRouter = () => {
   // 2. POST /sync/start
   router.post('/start', async (req: Request, res: Response): Promise<void> => {
     try {
-      const { target_url, dataset_id, batch_size, total_limit, overwrite, ui_config } = req.body;
+      const { target_url, dataset_id, batch_size, total_limit, overwrite, inter_batch_sleep_ms, ui_config } = req.body;
       if (!target_url || !dataset_id) {
         res.status(400).json({ error: 'target_url and dataset_id are required' });
         return;
       }
 
       // Start the sync process and await the Job ID
-      const jobId = await orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100, overwrite, ui_config ?? {});
+      const jobId = await orchestrator.sync(target_url, dataset_id, total_limit || 1000, batch_size || 100, overwrite, inter_batch_sleep_ms ?? 1000, ui_config ?? {});
 
       res.status(202).json({
         message: 'Sync started.',
