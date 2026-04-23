@@ -233,6 +233,7 @@ export interface ISyncStartRequest {
   batch_size?: number;
   total_limit?: number;
   overwrite?: boolean;
+  ui_config?: Record<string, any>;
 }
 
 export interface ISyncStartResponse {

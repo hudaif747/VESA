@@ -13,7 +13,7 @@ const steps = ['Connect', 'Import', 'Analyze'];
 const IngestionPage: React.FC = () => {
 	const theme = useTheme();
 	const navigate = useNavigate();
-	const [config, setConfig] = useState<{ url: string; prefix: string; limit: number; overwrite?: boolean } | null>(null);
+	const [config, setConfig] = useState<{ url: string; prefix: string; limit: number; color: string; overwrite?: boolean } | null>(null);
 	const [activeStep, setActiveStep] = useState(0);
 	const [errorMsg, setErrorMsg] = useState<string | null>(null);
 	const [ignoredJobId, setIgnoredJobId] = useState<string | null>(() => localStorage.getItem('ignoredJobId'));
@@ -41,20 +41,20 @@ const IngestionPage: React.FC = () => {
 
 		if (status === 'running') {
 			if (activeStep !== 1) {
-				setConfig({ url, prefix: current_prefix, limit: total });
+				setConfig((prev) => ({ url, prefix: current_prefix, limit: total, color: prev?.color ?? '#543CF0' }));
 				setActiveStep(1);
 			}
 			setErrorMsg(null);
 		} else if (isCompleted && job_id !== ignoredJobId) {
 			if (activeStep !== 2) {
-				setConfig({ url, prefix: current_prefix, limit: total });
+				setConfig((prev) => ({ url, prefix: current_prefix, limit: total, color: prev?.color ?? '#543CF0' }));
 				setActiveStep(2);
 				refetchHistory();
 			}
 			setErrorMsg(null);
 		} else if (isStopped && job_id !== ignoredJobId) {
 			if (activeStep !== 1) {
-				setConfig({ url, prefix: current_prefix, limit: total });
+				setConfig((prev) => ({ url, prefix: current_prefix, limit: total, color: prev?.color ?? '#543CF0' }));
 				setActiveStep(1);
 			}
 			setErrorMsg(`Synchronization stopped. Processed ${processed} of ${total} records. Please start a New Import.`);
@@ -114,7 +114,7 @@ const IngestionPage: React.FC = () => {
 						)}
 						{activeStep === 1 && (
 							<Box sx={{ width: '100%' }}>
-								<SyncControl status={syncStatus || {}} config={config || { url: '', prefix: '', limit: 0 }} />
+								<SyncControl status={syncStatus || {}} config={config || { url: '', prefix: '', limit: 0, color: '#543CF0' }} />
 								<Button 
 									sx={{ mt: 3, alignSelf: 'flex-start', textTransform: 'none' }} 
 									color="error"

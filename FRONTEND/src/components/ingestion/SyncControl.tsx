@@ -5,7 +5,7 @@ import StopIcon from '@mui/icons-material/Stop';
 import { useStartSyncMutation, useStopSyncMutation } from '../../store/services/syncApi';
 
 interface SyncControlProps {
-	config: { url: string; prefix: string; limit: number; overwrite?: boolean };
+	config: { url: string; prefix: string; limit: number; color: string; overwrite?: boolean };
 	status: any;
 }
 
@@ -69,7 +69,7 @@ const SyncControl: React.FC<SyncControlProps> = ({ config, status }) => {
 						startIcon={<PlayArrowIcon />}
 						size="large"
 						onClick={() =>
-							startSync({ target_url: config.url, dataset_id: config.prefix, total_limit: config.limit, overwrite: config.overwrite })
+							startSync({ target_url: config.url, dataset_id: config.prefix, total_limit: config.limit, overwrite: config.overwrite, ui_config: { color: config.color } })
 						}
 						disabled={isStarting}
 						sx={{

@@ -32,6 +32,7 @@ const ConnectedSources: React.FC = () => {
         <Box key={source.prefix} sx={{ py: 1.5 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
             <Stack direction="row" alignItems="center" spacing={1}>
+              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: source.ui_config?.color ?? 'primary.main', flexShrink: 0 }} />
               <Typography variant="body2" fontWeight={600}>{source.prefix}</Typography>
               <Chip
                 label="Active"
