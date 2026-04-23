@@ -19,6 +19,7 @@ import healthCheckRouter from "./routes/healthCheck";
 import locationNameRouter from "./routes/getLocationName";
 import initemptydbRouter from "./routes/initemptydb";
 import pangaeaHarvesterRouter from "./routes/pangaeaHarvester";
+import { gbifProxyRouter } from "./proxy/gbifProxy";
 
 // Load environment variables before reading config values
 dotenv.config();
@@ -58,6 +59,7 @@ const ROUTES = [
   ["/initemptydb", initemptydbRouter],
   ["/pangaea-harvester", pangaeaHarvesterRouter],
   ["/pangaea", pangaeaProxyRouter],
+  ["/gbif", gbifProxyRouter],
   ["/sync", getIngestionRouter()],
 ] as const;
 
