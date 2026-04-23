@@ -22,13 +22,12 @@ services:
       - "5000:5000"
     environment:
       - ARANGO_URL=http://arangodb:8529
-      - ARANGO_DB_NAME=cag-pangaea-rs-v2
+      - ARANGO_DB_NAME=
       - ARANGO_USER=root
       - ARANGO_PASS=root
       - NODE_PORT=5000
     depends_on:
       - arangodb
-      - arangodb_restore
     restart: on-failure
     networks:
       - app-network
@@ -41,21 +40,6 @@ services:
       - ARANGO_ROOT_PASSWORD=root
     volumes:
       - vesa_arango_data:/var/lib/arangodb3
-      - ~/DB/arango-dump:/arango-dump
-    networks:
-      - app-network
-
-  arangodb_restore:
-    image: arangodb:latest
-    depends_on:
-      - arangodb
-    volumes:
-      - "./import_dump.sh:/import_dump.sh"
-      - "./DB/arango-dump:/arango-dump"
-    environment:
-      - ARANGO_ROOT_PASSWORD=root
-      - ARANGO_DB_NAME=cag-pangaea-rs-v2
-    command: ["/bin/sh", "/import_dump.sh"]
     networks:
       - app-network
 
